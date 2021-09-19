@@ -1,5 +1,6 @@
 import datetime
 import base64
+import json
 
 from flask import Flask, redirect, request
 import webbrowser
@@ -7,11 +8,13 @@ from urllib.parse import urlencode
 import requests
 import pandas as pd
 
+# Comment this line if you input CLEINT_ID and CLIENT_SECRET below
 from secrets import CLIENT_ID, CLIENT_SECRET
 
 app = Flask(__name__)
 
 # Client credentials
+# Client credentials are kept in a separate file secrets.py, but you can input them here instead.
 # CLIENT_ID = ""
 # CLIENT_SECRET = ""
 
@@ -49,36 +52,12 @@ def shutdown_server():
     func()
 
 
-@app.route("/")
-def index():
-    auth_query_parameters = {
-    "response_type": "code",
-    "redirect_uri": REDIRECT_URI,
-    "scope": SCOPE,
-    # "state": STATE,
-    "show_dialog": SHOW_DIALOG,
-    "client_id": CLIENT_ID
-}
-    auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
-    return redirect(auth_url_params)
-
-
-@app.route("/callback/q")
-def callback():
-    return extract_auth_code()
-    
- 
-@app.route('/shutdown', methods=['GET'])
-def shutdown():
-    shutdown_server()
-    return 'Server shutting down...'
-
-
 def get_client_creds_b64():
     """Returns credentials as b64 encoded string."""
     client_creds = f"{CLIENT_ID}:{CLIENT_SECRET}"
     client_creds_b64 = base64.b64encode(client_creds.encode())
     return client_creds_b64.decode()
+
 
 def get_token_data():
     """Returns access tokes as JSON format."""
@@ -95,19 +74,26 @@ def get_token_data():
         print(r.json())
         raise Exception(f"Authentication failed. Requests status code: {r.status_code}")
     token_data = r.json()
-    # print(token_data)
+    token_data_to_json_file(token_data)
     return token_data["access_token"]
 
+def token_data_to_json_file(token_data):
+    with open("aaa.txt", mode="w", encoding="utf-8") as f:
+        json.dump(token_data, f, indent=0)
+
+def get_token_data_from_json_file():
+    with open("secrets.txt", mode='r') as f:
+        json.load(f)
     
 def get_recently_played(token):
     endpoint = "https://api.spotify.com/v1/me/player/recently-played"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-        "limit": "50"
+        "Authorization": f"Bearer {token}"
     }
-    r = requests.get(endpoint, headers=headers)
+    payload = {"limit": 50}
+    r = requests.get(endpoint, headers=headers, params=payload)
     if r.status_code not in range(200, 299):
         print(r.json())
         raise Exception("Could not get requested user data.")
@@ -116,7 +102,7 @@ def get_recently_played(token):
 def get_artist_genres(artist_id):
     artist_genres = []
     artist_base_url = "https://api.spotify.com/v1/artists/"
-    r_art_genre_headers = {
+    headers = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "Authorization": f"Bearer {token}"
@@ -124,13 +110,33 @@ def get_artist_genres(artist_id):
 
     for id in artist_id:
         artist_url = f"{artist_base_url}{id}"
-        r = requests.get(artist_url, headers=r_art_genre_headers)
+        r = requests.get(artist_url, headers=headers)
         if r.status_code not in range(200, 299):
             return []
         genres = r.json()["genres"]
         artist_genres.append(genres)
         
     return artist_genres
+
+# def get_track_features(track_id):
+#     track_features = []
+#     audio_features_base_url = "https://api.spotify.com/v1/audio-features/"
+#     headers = {
+#     "Accept": "application/json",
+#     "Content-Type": "application/json",
+#     "Authorization": f"Bearer {token}"
+#     }
+
+#     for id in artist_id:
+#         audio_features_url = f"{audio_features_base_url}{id}"
+#         r = requests.get(audio_features_url, headers=headers)
+#         if r.status_code not in range(200, 299):
+#             return []
+#         genres = r.json()["genres"]
+#         track_features.append(genres)
+
+#     return track_features
+
 
 def check_if_data_valid(df):
     # Check if dataframe is empty
@@ -159,7 +165,43 @@ def check_if_data_valid(df):
 
     return True
 
+def filter_by_played_at(df, days_interval=1):
+    # Donwloads the tracks data only from the day before.
+    # This funcionality will be improved once tha databse is created.
+        today = datetime.datetime.today()
+        yesterday = today - datetime.timedelta(days=days_interval)
+        yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday = yesterday.strftime("%Y-%m-%d")
 
+        df["played_at_timestamp"] = df["played_at"].apply(lambda x: x[0:10])
+        df = df[df["played_at_timestamp"] == yesterday]
+        
+        return df.drop(["played_at_timestamp"], axis=1)
+        
+
+@app.route("/")
+def index():
+    auth_query_parameters = {
+    "response_type": "code",
+    "redirect_uri": REDIRECT_URI,
+    "scope": SCOPE,
+    # "state": STATE,
+    "show_dialog": SHOW_DIALOG,
+    "client_id": CLIENT_ID
+}
+    auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
+    return redirect(auth_url_params)
+
+
+@app.route("/callback/q")
+def callback():
+    return extract_auth_code()
+    
+ 
+@app.route('/shutdown', methods=['GET'])
+def shutdown():
+    shutdown_server()
+    return 'Server shutting down...'
     
 if __name__ == "__main__":
     webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
@@ -210,7 +252,8 @@ if __name__ == "__main__":
 
       
     tracks_df = pd.DataFrame(tracks_dict, columns=list(tracks_dict.keys()))
-    print(tracks_df["played_at"])
-    print(check_if_data_valid(tracks_df))
 
-# czy nie prosciej by bylo, gdyby POBIERAC tylko piosenki z ostatnich 24h?
+    
+
+    print(filter_by_played_at(tracks_df))
+
