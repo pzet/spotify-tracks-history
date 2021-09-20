@@ -10,6 +10,7 @@ import pandas as pd
 
 # Comment this line if you input CLEINT_ID and CLIENT_SECRET below
 from secrets import CLIENT_ID, CLIENT_SECRET
+import get_auth_code
 
 app = Flask(__name__)
 
@@ -34,22 +35,6 @@ SHOW_DIALOG = "false"
 
 # Authorization code
 AUTH_TOKEN = None
-
-
-def extract_auth_code():
-    auth_token = request.args["code"]
-    global AUTH_TOKEN
-    AUTH_TOKEN = auth_token
-    r = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
-    token_msg = f"Your authorization code is: <br \>{auth_token}"
-    return token_msg
-
-
-def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
 
 
 def get_client_creds_b64():
@@ -77,14 +62,25 @@ def get_token_data():
     token_data_to_json_file(token_data)
     return token_data["access_token"]
 
+
 def token_data_to_json_file(token_data):
-    with open("aaa.txt", mode="w", encoding="utf-8") as f:
-        json.dump(token_data, f, indent=0)
+    with open("secrets.json", encoding="utf-8") as f:
+        secrets_json = json.load(f)
+
+    secrets_json.update(token_data)
+
+    with open("secrets.json", mode="w", encoding="utf-8") as f:
+        json.dump(secrets_json, f, indent=0)
+
 
 def get_token_data_from_json_file():
-    with open("secrets.txt", mode='r') as f:
-        json.load(f)
-    
+    try:
+        with open("secrets.txt", mode='r') as f:
+            json.load(f)
+    except ValueError:
+        print('Error while reading token data from JSON file.')
+
+
 def get_recently_played(token):
     endpoint = "https://api.spotify.com/v1/me/player/recently-played"
     headers = {
@@ -92,12 +88,13 @@ def get_recently_played(token):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     }
-    payload = {"limit": 50}
-    r = requests.get(endpoint, headers=headers, params=payload)
+    params = {"limit": 50}
+    r = requests.get(endpoint, headers=headers, params=params)
     if r.status_code not in range(200, 299):
         print(r.json())
         raise Exception("Could not get requested user data.")
     return r.json()
+
 
 def get_artist_genres(artist_id):
     artist_genres = []
@@ -179,34 +176,10 @@ def filter_by_played_at(df, days_interval=1):
         return df.drop(["played_at_timestamp"], axis=1)
         
 
-@app.route("/")
-def index():
-    auth_query_parameters = {
-    "response_type": "code",
-    "redirect_uri": REDIRECT_URI,
-    "scope": SCOPE,
-    # "state": STATE,
-    "show_dialog": SHOW_DIALOG,
-    "client_id": CLIENT_ID
-}
-    auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
-    return redirect(auth_url_params)
-
-
-@app.route("/callback/q")
-def callback():
-    return extract_auth_code()
-    
- 
-@app.route('/shutdown', methods=['GET'])
-def shutdown():
-    shutdown_server()
-    return 'Server shutting down...'
-    
+  
 if __name__ == "__main__":
-    webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
-    app.run(debug=False, port=PORT)
-    # print(AUTH_TOKEN)
+    AUTH_TOKEN = get_auth_code.obtain_auth_code()
+    print(f"The authorization code is: {AUTH_TOKEN}")
     token = get_token_data()
     data = get_recently_played(token)
     
@@ -253,7 +226,7 @@ if __name__ == "__main__":
       
     tracks_df = pd.DataFrame(tracks_dict, columns=list(tracks_dict.keys()))
 
-    
+    print(tracks_df)
 
-    print(filter_by_played_at(tracks_df))
+    # print(filter_by_played_at(tracks_df))
 
