@@ -37,50 +37,6 @@ SHOW_DIALOG = "false"
 AUTH_TOKEN = None
 
 
-def get_client_creds_b64():
-    """Returns credentials as b64 encoded string."""
-    client_creds = f"{CLIENT_ID}:{CLIENT_SECRET}"
-    client_creds_b64 = base64.b64encode(client_creds.encode())
-    return client_creds_b64.decode()
-
-
-def get_token_data():
-    """Returns access tokes as JSON format."""
-    client_creds_b64 = get_client_creds_b64()
-    token_url = SPOTIFY_TOKEN_URL
-    token_query_params = {
-        "grant_type": "authorization_code",
-        "code": f"{AUTH_TOKEN}",
-        "redirect_uri": REDIRECT_URI
-    }
-    token_headers = {"Authorization": f"Basic {client_creds_b64}"}
-    r = requests.post(SPOTIFY_TOKEN_URL, data=token_query_params, headers=token_headers)
-    if r.status_code not in range(200, 299):
-        print(r.json())
-        raise Exception(f"Authentication failed. Requests status code: {r.status_code}")
-    token_data = r.json()
-    token_data_to_json_file(token_data)
-    return token_data["access_token"]
-
-
-def token_data_to_json_file(token_data):
-    with open("secrets.json", encoding="utf-8") as f:
-        secrets_json = json.load(f)
-
-    secrets_json.update(token_data)
-
-    with open("secrets.json", mode="w", encoding="utf-8") as f:
-        json.dump(secrets_json, f, indent=0)
-
-
-def get_token_data_from_json_file():
-    try:
-        with open("secrets.txt", mode='r') as f:
-            json.load(f)
-    except ValueError:
-        print('Error while reading token data from JSON file.')
-
-
 def get_recently_played(token):
     endpoint = "https://api.spotify.com/v1/me/player/recently-played"
     headers = {
@@ -180,7 +136,7 @@ def filter_by_played_at(df, days_interval=1):
 if __name__ == "__main__":
     AUTH_TOKEN = get_auth_code.obtain_auth_code()
     print(f"The authorization code is: {AUTH_TOKEN}")
-    token = get_token_data()
+    token = get_auth_code.get_token()
     data = get_recently_played(token)
     
     artist_name = []
