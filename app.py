@@ -1,18 +1,15 @@
 import datetime
 import base64
 import json
+from pandas.core.frame import DataFrame
 
-from flask import Flask, redirect, request
-import webbrowser
-from urllib.parse import urlencode
 import requests
 import pandas as pd
 
 # Comment this line if you input CLEINT_ID and CLIENT_SECRET below
 from secrets import CLIENT_ID, CLIENT_SECRET
 import get_auth_code
-
-app = Flask(__name__)
+import database
 
 # Client credentials
 # Client credentials are kept in a separate file secrets.py, but you can input them here instead.
@@ -52,8 +49,9 @@ def get_recently_played(token):
     return r.json()
 
 
-def get_artist_genres(artist_id):
+def get_artist_genres(df):
     artist_genres = []
+    artist_id_list = df["artist_id"].tolist()
     artist_base_url = "https://api.spotify.com/v1/artists/"
     headers = {
     "Accept": "application/json",
@@ -61,7 +59,7 @@ def get_artist_genres(artist_id):
     "Authorization": f"Bearer {token}"
     }
 
-    for id in artist_id:
+    for id in artist_id_list:
         artist_url = f"{artist_base_url}{id}"
         r = requests.get(artist_url, headers=headers)
         if r.status_code not in range(200, 299):
@@ -69,26 +67,29 @@ def get_artist_genres(artist_id):
         genres = r.json()["genres"]
         artist_genres.append(genres)
         
-    return artist_genres
+    df["artist_genre"] = artist_genres
+    
+    return df
 
-# def get_track_features(track_id):
-#     track_features = []
-#     audio_features_base_url = "https://api.spotify.com/v1/audio-features/"
-#     headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "Authorization": f"Bearer {token}"
-#     }
+def get_track_features(df: DataFrame) -> DataFrame:
+    track_features = []
+    track_list = df["song_id"].tolist()
+    audio_features_base_url = "https://api.spotify.com/v1/audio-features/"
+    headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {token}"
+    }
 
-#     for id in artist_id:
-#         audio_features_url = f"{audio_features_base_url}{id}"
-#         r = requests.get(audio_features_url, headers=headers)
-#         if r.status_code not in range(200, 299):
-#             return []
-#         genres = r.json()["genres"]
-#         track_features.append(genres)
+    for _ in track_list:
+        audio_features_url = f"{audio_features_base_url}{id}"
+        r = requests.get(audio_features_url, headers=headers)
+        if r.status_code not in range(200, 299):
+            return []
+        genres = r.json()["genres"]
+        track_features.append(genres)
 
-#     return track_features
+    return track_features
 
 
 def check_if_data_valid(df):
@@ -164,7 +165,6 @@ if __name__ == "__main__":
         song_popularity.append(song["track"]["popularity"])
         played_at.append(song["played_at"])
         
-    artist_genre = get_artist_genres(artist_id)
 
     tracks_dict = {
         "artist_name": artist_name,
@@ -175,14 +175,19 @@ if __name__ == "__main__":
         "song_id": song_id,
         "album_id": album_id,
         "song_popularity": song_popularity,
-        "played_at": played_at,
-        "artist_genre": artist_genre
+        "played_at": played_at
     }
 
       
     tracks_df = pd.DataFrame(tracks_dict, columns=list(tracks_dict.keys()))
 
-    print(tracks_df)
+    album_release_dates = tracks_df["album_release_date"].tolist()
+    tracks_df["album_release_date"] = [f"{x}-01-01" if len(x) == 4 else x for x in album_release_dates]
 
-    # print(filter_by_played_at(tracks_df))
+    tracks_np = tracks_df.to_numpy()
+    track_tuples = [tuple(x) for x in tracks_np]
+    cols = ','.join(list(tracks_df.columns))
 
+    db = database.Database()
+    # db.create_table()
+    db.insert_into_table(tracks_df)
