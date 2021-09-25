@@ -45,30 +45,33 @@ class Database:
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
 
-    def create_table(self):
-        sql = f"""
-                CREATE TABLE IF NOT EXISTS {self.TABLE_NAME} (
-                artist_name TEXT, 
-                song_name TEXT, 
-                album_name TEXT,
-                album_release_date DATE,
-                artist_id TEXT,
-                song_id TEXT,
-                album_id TEXT,
-                song_popularity INTEGER,
-                played_at TIMESTAMP,
-                CONSTRAINT played_at_pk PRIMARY KEY(played_at)
-                )
+
+    def create_table(self, cols_dict: dict, table_name: str):
+        cols_str = ", ".join([f"{key} {value}" for key, value in cols_dict.items()])
+        sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_str})"
+        try:
+            self.cursor.execute(sql)
+            print(f"Table {table_name} created succesfully.")
+        except (Exception, psycopg2.OperationalError) as error:
+            print(f"Table not created. Error code: {error.pgcode}")
+
+
+    def alter_table(self, table_name: str, constraint_name: str, constraint_type: str,  column: str):
+        try:
+            sql = f"""
+            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
+            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} {constraint_type} ({column});
             """
-        print("Table created succesfully.")
-        self.cursor.execute(sql)
+            self.cursor.execute(sql)
+        except(psycopg2.ProgrammingError) as error:
+            print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
 
-    def insert_into_table(self, df: DataFrame, table="recently_played_tracks"):
-        df_numpy = df.to_numpy()
+    def insert_into_table(self, data: DataFrame, table_name: str):
+        df_numpy = data.to_numpy()
         df_tuples = [tuple(row) for row in list(df_numpy)]
-        cols = ','.join(list(df.columns))
-        query = "INSERT INTO {} ({}) VALUES %s ON CONFLICT DO NOTHING".format(table, cols)
+        cols = ','.join(list(data.columns))
+        query = "INSERT INTO {} ({}) VALUES %s ON CONFLICT DO NOTHING".format(table_name, cols)
         try:
             execute_values(self.cursor, query, df_tuples)
             self.connection.commit()
@@ -96,4 +99,29 @@ if __name__ == "__main__":
         db_setup = Database(db_create_params)
         db_setup.create_database()
         db_spotify = Database()
-        db_spotify.create_table()
+        
+        tracks_history_cols = {
+            "artist_name": "TEXT", 
+            "song_name": "TEXT", 
+            "album_name": "TEXT",
+            "album_release_date": "DATE",
+            "artist_id": "TEXT",
+            "song_id": "TEXT",
+            "album_id": "TEXT",
+            "song_popularity": "INTEGER",
+            "played_at": "TIMESTAMP"
+            }
+
+        artist_data_cols = {
+            "artist_id": "TEXT",
+            "artist_popularity": "INTEGER",
+            "artist_genres": "TEXT"
+            }
+        
+        db_spotify.create_table(tracks_history_cols, "track_history")
+        db_spotify.create_table(artist_data_cols, "artist_data")
+        db_spotify.alter_table("track_history", "played_at_pk", "PRIMARY KEY", "played_at")
+        db_spotify.alter_table("artist_data", "artist_id_pk", "PRIMARY KEY", "artist_id")
+
+
+    

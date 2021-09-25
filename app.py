@@ -2,6 +2,7 @@ import datetime
 import base64
 import json
 from pandas.core.frame import DataFrame
+from psycopg2.extensions import JSON
 
 import requests
 import pandas as pd
@@ -31,10 +32,10 @@ STATE = ""
 SHOW_DIALOG = "false"
 
 # Authorization code
-AUTH_TOKEN = None
+# AUTH_TOKEN = None
 
 
-def get_recently_played(token):
+def get_recently_played(token: str) -> JSON:
     endpoint = "https://api.spotify.com/v1/me/player/recently-played"
     headers = {
         "Accept": "application/json",
@@ -49,8 +50,9 @@ def get_recently_played(token):
     return r.json()
 
 
-def get_artist_genres(df):
+def get_artist_data(df: DataFrame) -> DataFrame:
     artist_genres = []
+    artist_popularity = []
     artist_id_list = df["artist_id"].tolist()
     artist_base_url = "https://api.spotify.com/v1/artists/"
     headers = {
@@ -65,11 +67,20 @@ def get_artist_genres(df):
         if r.status_code not in range(200, 299):
             return []
         genres = r.json()["genres"]
+        popularity = r.json()["popularity"]
         artist_genres.append(genres)
+        artist_popularity.append(popularity)
         
-    df["artist_genre"] = artist_genres
+    artist_genres = [",".join(x) for x in artist_genres]
+    artist_genres = ["<unknown>" if len(x) == 0 else x for x in artist_genres]
     
-    return df
+    artist_genres_df = pd.DataFrame(
+        {"artist_id": artist_id_list,
+         "artist_popularity": artist_popularity,
+         "artist_genres": artist_genres
+        })
+    # artist_genres["artist_genres"] = [",".join(x) for x in artist_genres_df["artist_genres"]]
+    return artist_genres_df
 
 def get_track_features(df: DataFrame) -> DataFrame:
     track_features = []
@@ -92,7 +103,7 @@ def get_track_features(df: DataFrame) -> DataFrame:
     return track_features
 
 
-def check_if_data_valid(df):
+def check_if_data_valid(df: DataFrame) -> bool:
     # Check if dataframe is empty
     if df.empty:
         print("No tracks downloaded.")
@@ -118,25 +129,10 @@ def check_if_data_valid(df):
             raise Exception("At least one of the returned songs does not come within the last 24 hours.")
 
     return True
-
-def filter_by_played_at(df, days_interval=1):
-    # Donwloads the tracks data only from the day before.
-    # This funcionality will be improved once tha databse is created.
-        today = datetime.datetime.today()
-        yesterday = today - datetime.timedelta(days=days_interval)
-        yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
-        yesterday = yesterday.strftime("%Y-%m-%d")
-
-        df["played_at_timestamp"] = df["played_at"].apply(lambda x: x[0:10])
-        df = df[df["played_at_timestamp"] == yesterday]
-        
-        return df.drop(["played_at_timestamp"], axis=1)
-        
-
   
 if __name__ == "__main__":
-    AUTH_TOKEN = get_auth_code.obtain_auth_code()
-    print(f"The authorization code is: {AUTH_TOKEN}")
+    auth_code = get_auth_code.obtain_auth_code()
+    print(f"The authorization code is: {auth_code}")
     token = get_auth_code.get_token()
     data = get_recently_played(token)
     
@@ -189,7 +185,8 @@ if __name__ == "__main__":
     cols = ','.join(list(tracks_df.columns))
 
 
-
     db = database.Database()
-    # db.create_table()
-    db.insert_into_table(tracks_df)
+    db.insert_into_table(tracks_df, "track_history")
+
+    artist_genres_df = get_artist_data(tracks_df)
+    db.insert_into_table(artist_genres_df, "artist_data")
