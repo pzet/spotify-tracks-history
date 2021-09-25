@@ -188,6 +188,8 @@ if __name__ == "__main__":
     track_tuples = [tuple(x) for x in tracks_np]
     cols = ','.join(list(tracks_df.columns))
 
+
+
     db = database.Database()
     # db.create_table()
     db.insert_into_table(tracks_df)
