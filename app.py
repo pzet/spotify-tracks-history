@@ -79,7 +79,7 @@ def get_artist_data(df: DataFrame) -> DataFrame:
          "artist_popularity": artist_popularity,
          "artist_genres": artist_genres
         })
-    # artist_genres["artist_genres"] = [",".join(x) for x in artist_genres_df["artist_genres"]]
+
     return artist_genres_df
 
 def get_track_features(df: DataFrame) -> DataFrame:
