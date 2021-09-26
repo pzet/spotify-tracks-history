@@ -11,8 +11,6 @@ from urllib.parse import urlencode
 from secrets import CLIENT_ID, CLIENT_SECRET
 
 
-app = Flask(__name__)
-
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
@@ -26,11 +24,11 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
-# Authorization code
-AUTH_TOKEN = None
+app = Flask(__name__)
 
-def is_auth_code_empty():
-    # Check if secrets.json contains authorization code
+
+def json_not_contains(token_type: str) -> bool:
+    # Check if secrets.json contains authorization code or token
     try:
         with open("secrets.json", encoding="utf-8") as f:
             secrets = json.load(f)
@@ -39,32 +37,16 @@ def is_auth_code_empty():
             secrets = {}
             json.dump(secrets, f)
 
-    if "authorization_code" not in secrets.keys():
+    if token_type not in secrets.keys():
         return True
-    elif "authorization_code" in secrets.keys() and len(secrets["authorization_code"]) == 0:
-        return True
-
-    return False
-
-def is_token_empty():
-    # Check if secrets.json contains authorization code
-    try:
-        with open("secrets.json", encoding="utf-8") as f:
-            secrets = json.load(f)
-    except ValueError: 
-        with open("secrets.json", "w", encoding="utf-8") as f:
-            secrets = {}
-            json.dump(secrets, f)
-
-    if "access_token" not in secrets.keys():
-        return True
-    elif "access_token" in secrets.keys() and len(secrets["access_token"]) == 0:
+    elif token_type in secrets.keys() and len(secrets[token_type]) == 0:
         return True
 
     return False
 
 
-def is_token_expired():
+def is_token_expired() -> bool:
+    """Check if the token is already expired."""
     now = datetime.datetime.now()
     
     with open("secrets.json") as f:
@@ -76,8 +58,8 @@ def is_token_expired():
     return now > expiration_time_datetime
 
 
-def auth_code_to_json(auth_code):
-    # Write authorization code to the secrets.json file
+def auth_code_to_json(auth_code: str):
+    """Write authorization code to the secrets.json file"""
     auth_code_dict = {
             "authorization_code": auth_code
         }
@@ -91,50 +73,19 @@ def auth_code_to_json(auth_code):
         json.dump(secrets, f, indent=0)
         
 
-def extract_auth_code():
-    auth_token = request.args["code"]
-    global AUTH_TOKEN
-    AUTH_TOKEN = auth_token
+def extract_auth_code() -> str:
+    """
+    Reads authorization code from request arguments 
+    and shuts the server down (with GET request).
+    """
+    auth_code = request.args["code"]
     r = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
-    auth_code_to_json(auth_token)
-    token_msg = f"Your authorization code is: <br \>{auth_token}"
-    return token_msg
+    auth_code_to_json(auth_code)
+    return auth_code
 
 
-def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
-
-
-@app.route("/")
-def index():
-    auth_query_parameters = {
-    "response_type": "code",
-    "redirect_uri": REDIRECT_URI,
-    "scope": SCOPE,
-    # "state": STATE,
-    "show_dialog": SHOW_DIALOG,
-    "client_id": CLIENT_ID
-}
-    auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
-    return redirect(auth_url_params)
-
-
-@app.route("/callback/q")
-def callback():
-    return extract_auth_code()
-    
- 
-@app.route('/shutdown', methods=['GET'])
-def shutdown():
-    shutdown_server()
-    return 'Server shutting down...'
-
-
-def obtain_auth_code():
-    if is_auth_code_empty():
+def obtain_auth_code() -> str:
+    if json_not_contains("authorization_code"):
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
     
@@ -144,18 +95,20 @@ def obtain_auth_code():
     return secrets_dict["authorization_code"]
 
 
-def get_client_creds_b64():
+def get_client_creds_b64() -> str:
     """Returns credentials as b64 encoded string."""
     client_creds = f"{CLIENT_ID}:{CLIENT_SECRET}"
     client_creds_b64 = base64.b64encode(client_creds.encode())
     return client_creds_b64.decode()
 
 
-def get_token():
-    if is_token_empty():
+def get_token() -> str:
+    if json_not_contains("access_token"):
         request_token()
+        print("New token obtained.")
     if is_token_expired():
         refresh_token()
+        print("Token has been refreshed.")
     
     with open("secrets.json") as f:
         token_data = json.load(f)
@@ -165,13 +118,13 @@ def get_token():
     return access_token
     
 
-def request_token():
+def request_token() -> str:
     """Returns access tokes as JSON format."""
     client_creds_b64 = get_client_creds_b64()
-    token_url = SPOTIFY_TOKEN_URL
+    auth_code = extract_auth_code()
     data = {
         "grant_type": "authorization_code",
-        "code": f"{AUTH_TOKEN}",
+        "code": f"{auth_code}",
         "redirect_uri": REDIRECT_URI
     }
     headers = {"Authorization": f"Basic {client_creds_b64}"}
@@ -184,6 +137,7 @@ def request_token():
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
     token_data["expires_at"] = token_expiration_time
     token_data_to_json_file(token_data)
+    return token_data["access_token"]
 
 
 def refresh_token():
@@ -226,17 +180,37 @@ def token_data_to_json_file(token_data):
         json.dump(secrets_json, f, indent=0)
 
 
-# def get_token_data_from_json_file():
-#     if not is_token_expired():
-#         try:
-#             with open("secrets.txt", mode='r') as f:
-#                 json.load(f)
-#         except ValueError:
-#             print('Error while reading token data from JSON file.')
+# Flask app
+@app.route("/")
+def index() -> redirect:
+    auth_query_parameters = {
+    "response_type": "code",
+    "redirect_uri": REDIRECT_URI,
+    "scope": SCOPE,
+    # "state": STATE,
+    "show_dialog": SHOW_DIALOG,
+    "client_id": CLIENT_ID
+}
+    auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
+    return redirect(auth_url_params)
 
 
-
+@app.route("/callback/q")
+def callback():
+    return request_token()
     
+ 
+@app.route('/shutdown', methods=['GET'])
+def shutdown():
+    shutdown_server()
+    return 'Server shutting down...'
+
+
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
 
 if __name__ == "__main__":
     auth_code = obtain_auth_code()
