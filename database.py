@@ -66,6 +66,32 @@ class Database:
         except(psycopg2.ProgrammingError) as error:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
+    def add_pk(self, table_name: str, constraint_name: str,  column: str):
+        try:
+            sql = f"""
+            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
+            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} PRIMARY KEY ({column});
+            """
+            self.cursor.execute(sql)
+        except(psycopg2.ProgrammingError) as error:
+            print(f"Error ocured: {error}\nError code: {error.pgcode}")
+
+
+    def add_fk(self, 
+                table_name: str, 
+                constraint_name: str, 
+                column: str, 
+                table_name_fk: str,
+                column_fk: str):
+        try:
+            sql = f"""
+            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
+            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column}) REFERENCES {table_name_fk} ({column_fk}) MATCH FULL;
+            """
+            self.cursor.execute(sql)
+        except(psycopg2.ProgrammingError) as error:
+            print(f"Error ocured: {error}\nError code: {error.pgcode}")
+
 
     def insert_into_table(self, data: DataFrame, table_name: str):
         df_numpy = data.to_numpy()
@@ -117,11 +143,18 @@ if __name__ == "__main__":
             "artist_popularity": "INTEGER",
             "artist_genres": "TEXT"
             }
+
+        artists_cols = {
+            "artist_id": "TEXT",
+            "artist_popularity": "INTEGER",
+            "artist_genres": "TEXT"
+            }
+        
         
         db_spotify.create_table(tracks_history_cols, "track_history")
         db_spotify.create_table(artist_data_cols, "artist_data")
-        db_spotify.alter_table("track_history", "played_at_pk", "PRIMARY KEY", "played_at")
-        db_spotify.alter_table("artist_data", "artist_id_pk", "PRIMARY KEY", "artist_id")
+        db_spotify.add_pk("track_history", "played_at_pk", "played_at")
+        db_spotify.add_pk("artist_data", "artist_id_pk", "artist_id")
 
 
     
