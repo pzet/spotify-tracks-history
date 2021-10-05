@@ -69,7 +69,7 @@ class Database:
     def add_pk(self, table_name: str, constraint_name: str,  column: str):
         try:
             sql = f"""
-            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
+            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
             ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} PRIMARY KEY ({column});
             """
             self.cursor.execute(sql)
@@ -85,8 +85,8 @@ class Database:
                 column_fk: str):
         try:
             sql = f"""
-            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
-            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column}) REFERENCES {table_name_fk} ({column_fk}) MATCH FULL;
+            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
+            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column}) REFERENCES {table_name_fk} ({column_fk});
             """
             self.cursor.execute(sql)
         except(psycopg2.ProgrammingError) as error:
@@ -151,10 +151,113 @@ if __name__ == "__main__":
             }
         
         
-        db_spotify.create_table(tracks_history_cols, "track_history")
-        db_spotify.create_table(artist_data_cols, "artist_data")
-        db_spotify.add_pk("track_history", "played_at_pk", "played_at")
-        db_spotify.add_pk("artist_data", "artist_id_pk", "artist_id")
+        # db_spotify.create_table(tracks_history_cols, "track_history")
+        # db_spotify.create_table(artist_data_cols, "artist_data")
+        # db_spotify.add_pk("track_history", "played_at_pk", "played_at")
+        # db_spotify.add_pk("artist_data", "artist_id_pk", "artist_id")
+
+        tracks_history_cols = {
+            "id": "INTEGER GENERATE ALWAYS AS IDENTITY", 
+            "played_at": "DATETIME", 
+            "track_id": "TEXT",
+            "album_id": "TEXT",
+            }
+
+        albums_cols = {
+            "album_id": "TEXT",
+            "album_name": "TEXT", 
+            "release_date": "DATETIME", # check format of the data before putting into the table
+            "popularity": "INTEGER",
+            }       
+
+        artists_cols = {
+            "artist_id": "TEXT",
+            "artist_name": "TEXT", 
+            "popularity": "INTEGER", 
+            "followers": "INTEGER",
+            "type": "" # check what is this feature
+            }  
+
+## new table schema
+        recent_track_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "played_at": "timestamp",
+            "track_id" :"TEXT", 
+            "album_id" : "TEXT",
+            "artist_id": "TEXT"
+            }
+
+        albums_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "album_id": "TEXT",
+            "album_name": "TEXT",
+            "album_release_date": "timestamp",
+            "popularity": "integer"
+            }
+
+        artists_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "artist_id": "TEXT",
+            "artist_name": "TEXT",
+            "popularity": "integer",
+            "followers": "integer"
+        }
+
+        genres_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "genre_id": "TEXT",
+            "genre_name": "TEXT"
+        }
+
+        artists_genres_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "artist_id": "TEXT",
+            "genre_name": "TEXT"
+        }
+
+        track_info_cols = {
+            "id": "integer GENERATED ALWAYS AS IDENTITY",
+            "track_id": "TEXT",
+            "track_name": "TEXT",
+            "track_popularity": "integer",
+            "danceability": "decimal",
+            "energy": "decimal",
+            "track_key": "decimal", #check
+            "loudness": "decimal",
+            "track_mode": "decimal",
+            "speechiness": "decimal",
+            "acousticness": "decimal",
+            "instrumentalness": "decimal",
+            "liveness": "decimal",
+            "valence": "decimal",
+            "tempo": "decimal",
+            "duration_ms": "integer",
+            "time_signature": "integer"
+        }
 
 
-    
+        # db_spotify.create_table(tracks_history_cols, "recent_tracks")
+        # db_spotify.create_table(albums_cols, "albums")
+
+        ## create new tables
+        db_spotify.create_table(recent_track_cols, "recent_tracks")
+        db_spotify.create_table(albums_cols, "albums")
+        db_spotify.create_table(artists_cols, "artists") 
+        db_spotify.create_table(genres_cols, "genres")
+        db_spotify.create_table(artists_cols, "artists")
+        db_spotify.create_table(artists_genres_cols, "artists_genres")
+        db_spotify.create_table(track_info_cols, "track_info")
+
+        # add primary keys
+        db_spotify.add_pk("albums", "album_id_pk", "album_id")
+        db_spotify.add_pk("artists", "artist_id_pk", "artist_id")
+        db_spotify.add_pk("genres", "genre_name_pk", "genre_name")
+        db_spotify.add_pk("track_info", "track_id_pk", "track_id")
+        db_spotify.add_pk("recent_tracks", "played_at_pk", "played_at")
+
+        # add foreign keys
+        db_spotify.add_fk("recent_tracks", "track_id_fk", "track_id", "track_info", "track_id")
+        db_spotify.add_fk("recent_tracks", "album_id_fk", "album_id", "albums", "album_id")
+        db_spotify.add_fk("recent_tracks", "artist_id_fk", "artist_id", "artists", "artist_id")
+        db_spotify.add_fk("artists_genres", "artist_id_fk", "artist_id", "artists", "artist_id")
+        db_spotify.add_fk("artists_genres", "genre_name_fk", "genre_name", "genres", "genre_name")
