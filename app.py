@@ -98,7 +98,6 @@ class SpotifyAPI():
             "is_explicit": is_explicit
         }
 
-      
         tracks_df = pd.DataFrame(tracks_dict, columns=list(tracks_dict.keys()))
     
         return tracks_df
@@ -107,6 +106,7 @@ class SpotifyAPI():
         artist_genres = []
         artist_popularity = []
         artist_followers = []
+        df = df.drop_duplicates(subset=["artist_id"])
         artist_id_list = df["artist_id"].tolist()
         artist_base_url = f"{self.BASE_URL}/artists"
 
@@ -123,8 +123,6 @@ class SpotifyAPI():
             artist_followers.append(followers)
             
         artist_genres = [",".join(x) for x in artist_genres]
-        artist_genres = ["<unknown>" if len(x) == 0 else x for x in artist_genres]
-        
         artist_genres_df = pd.DataFrame(
             {"artist_id": artist_id_list,
             "popularity": artist_popularity,
@@ -137,6 +135,7 @@ class SpotifyAPI():
 
     def get_track_features(self, df: DataFrame) -> DataFrame:
         track_features = []
+        df = df.drop_duplicates(subset=["track_id"])
         track_list = df["track_id"].tolist()
         audio_features_base_url = f"{self.BASE_URL}/audio-features/"
 
@@ -144,15 +143,16 @@ class SpotifyAPI():
             audio_features_url = f"{audio_features_base_url}{id}"
             r = requests.get(audio_features_url, headers=self.headers)
             if r.status_code not in range(200, 299):
-                return []
+                self.get_track_features(df=df)
             features = r.json()
             track_features.append(features)
         
         track_features_df = pd.DataFrame(track_features)
         track_features_df = track_features_df.rename(columns={"id": "track_id"})
-        track_features_df = track_features_df.drop(columns=["uri", "track_href", "analysis_url", "duration_ms"])
+        track_features_df = track_features_df.drop(columns=["uri", "track_href", "analysis_url", "duration_ms", "type"])
         
         return track_features_df
+
 
     def join_all_tracks_data(self) -> DataFrame:
         recently_played = self.get_recently_played()
@@ -160,45 +160,52 @@ class SpotifyAPI():
         track_features = self.get_track_features(recently_played)
 
         all_data = pd.merge(recently_played, artist_data, on="artist_id", how="left")
+        print(f"all_data type: {type(all_data)}")
+        print(f"track_features type: {type(track_features)}")
         all_data = pd.merge(all_data, track_features, on="track_id", how="inner")
 
-        return all_data.columns
+        return all_data
         
 
     def clean_df(self, df: DataFrame) -> DataFrame:
-        pass
-        # check the dates
-        # sth like:
-        # df["artist_genres"] = pd.where(len(df["artist_genres"]) == 0, "<unknown>")    
+    # correct date if release date precision is year
+        df["album_release_date"] = [f"{x}-01-01" if len(x) == 4 else x for x in df["album_release_date"].tolist()]
+    # correct date if release date precision is month
+        df["album_release_date"] = [f"{x}-01" if len(x) == 7 else x for x in df["album_release_date"].tolist()]
+    # fill the genre with default value if empty
+        df["artist_genres"] = ["<unknown>" if len(x) == 0 else x for x in df["artist_genres"].tolist()]
+        # df["artist_genres"] = pd.where(len(df["artist_genres"]) == 0, "<unknown>")
+
+        return df
 ## end of SpotifyAPI class
 
 
-def check_if_data_valid(df: DataFrame) -> bool:
-    # Check if dataframe is empty
-    if df.empty:
-        print("No tracks downloaded.")
-        return False
-    
-    # Check if Primary Key values are unique
-    if not pd.Series(df['played_at']).is_unique:
-        raise Exception("Primary Key contraint is violated.")
+    def check_if_data_valid(self, df: DataFrame) -> bool:
+        # Check if dataframe is empty
+        if df.empty:
+            print("No tracks downloaded.")
+            return False
+        
+        # Check if Primary Key values are unique
+        if not pd.Series(df['played_at']).is_unique:
+            raise Exception("Primary Key contraint is violated.")
 
-    # Check for null values
-    if df.isnull().values.any():
-        raise Exception("Null values found in the dataset.")
-    
-    # Check if the tracks played at date is yesterday
-    now = datetime.datetime.now()
-    yesterday = now - datetime.timedelta(days=1)
-    yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Check for null values
+        if df.isnull().values.any():
+            raise Exception("Null values found in the dataset.")
+        
+        # Check if the tracks played at date is yesterday
+        # now = datetime.datetime.now()
+        # yesterday = now - datetime.timedelta(days=1)
+        # yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    timestamps = df["played_at"].tolist()
-    for timestamp in timestamps:
-        timestamp = datetime.datetime.strptime(timestamp[0:10], "%Y-%m-%d")
-        if timestamp != yesterday:
-            raise Exception("At least one of the returned songs does not come within the last 24 hours.")
+        # timestamps = df["played_at"].tolist()
+        # for timestamp in timestamps:
+        #     timestamp = datetime.datetime.strptime(timestamp[0:10], "%Y-%m-%d")
+        #     if timestamp != yesterday:
+        #         raise Exception("At least one of the returned songs does not come within the last 24 hours.")
 
-    return True
+        return True
   
 if __name__ == "__main__":
     auth_code = get_auth_code.obtain_auth_code()
@@ -221,7 +228,13 @@ if __name__ == "__main__":
 
     client = SpotifyAPI(token)
     recently_played = client.get_recently_played()
+    # recently_played.to_excel('recently_played.xlsx')
     # print(recently_played)
     # print(client.get_track_features(recently_played))
+    track_features = client.get_track_features(recently_played)
+    # track_features.to_excel("track_features.xlsx")
     # print(client.get_artist_data(recently_played))
-    print(client.join_all_tracks_data())
+    all_data = client.join_all_tracks_data()
+    cleaned_data = client.clean_df(all_data)
+    print(client.check_if_data_valid(cleaned_data))
+    cleaned_data.to_excel("cleaned_data.xlsx")
