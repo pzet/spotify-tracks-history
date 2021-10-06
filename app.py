@@ -174,10 +174,8 @@ class SpotifyAPI():
         df["album_release_date"] = [f"{x}-01" if len(x) == 7 else x for x in df["album_release_date"].tolist()]
     # fill the genre with default value if empty
         df["artist_genres"] = ["<unknown>" if len(x) == 0 else x for x in df["artist_genres"].tolist()]
-        # df["artist_genres"] = pd.where(len(df["artist_genres"]) == 0, "<unknown>")
 
         return df
-## end of SpotifyAPI class
 
 
     def check_if_data_valid(self, df: DataFrame) -> bool:
@@ -194,31 +192,25 @@ class SpotifyAPI():
         if df.isnull().values.any():
             raise Exception("Null values found in the dataset.")
         
-        # Check if the tracks played at date is yesterday
-        # now = datetime.datetime.now()
-        # yesterday = now - datetime.timedelta(days=1)
-        # yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        # timestamps = df["played_at"].tolist()
-        # for timestamp in timestamps:
-        #     timestamp = datetime.datetime.strptime(timestamp[0:10], "%Y-%m-%d")
-        #     if timestamp != yesterday:
-        #         raise Exception("At least one of the returned songs does not come within the last 24 hours.")
-
         return True
+
+    def get_tracks_data(self) -> DataFrame:
+        tracks_dataset = self.join_all_tracks_data()
+        clean_tracks_dataset = self.clean_df(tracks_dataset)
+        if not self.check_if_data_valid(clean_tracks_dataset):
+            return pd.DataFrame()
+        return clean_tracks_dataset
+
+
   
 if __name__ == "__main__":
     auth_code = get_auth_code.obtain_auth_code()
     print(f"The authorization code is: {auth_code}")
     token = get_auth_code.get_token()
 
-    # data cleaning
-    # tracks_df["album_release_date"] = [f"{x}-01-01" if len(x) == 4 else x for x in album_release_dates]
-
-    # tracks_np = tracks_df.to_numpy()
-    # track_tuples = [tuple(x) for x in tracks_np]
-    # cols = ','.join(list(tracks_df.columns))
-
+    client = SpotifyAPI(token)
+    df = client.get_tracks_data()
+    print(df)
 
     db = database.Database()
     # db.insert_into_table(tracks_df, "track_history")
@@ -226,15 +218,4 @@ if __name__ == "__main__":
     # artist_genres_df = get_artist_data(tracks_df)
     # db.insert_into_table(artist_genres_df, "artist_data")
 
-    client = SpotifyAPI(token)
-    recently_played = client.get_recently_played()
-    # recently_played.to_excel('recently_played.xlsx')
-    # print(recently_played)
-    # print(client.get_track_features(recently_played))
-    track_features = client.get_track_features(recently_played)
-    # track_features.to_excel("track_features.xlsx")
-    # print(client.get_artist_data(recently_played))
-    all_data = client.join_all_tracks_data()
-    cleaned_data = client.clean_df(all_data)
-    print(client.check_if_data_valid(cleaned_data))
-    cleaned_data.to_excel("cleaned_data.xlsx")
+    
