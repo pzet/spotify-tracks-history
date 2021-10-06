@@ -197,8 +197,10 @@ class SpotifyAPI():
     def get_tracks_data(self) -> DataFrame:
         tracks_dataset = self.join_all_tracks_data()
         clean_tracks_dataset = self.clean_df(tracks_dataset)
+
         if not self.check_if_data_valid(clean_tracks_dataset):
             return pd.DataFrame()
+        
         return clean_tracks_dataset
 
 
@@ -210,9 +212,10 @@ if __name__ == "__main__":
 
     client = SpotifyAPI(token)
     df = client.get_tracks_data()
-    print(df)
+    print(df.columns)
 
     db = database.Database()
+    
     # db.insert_into_table(tracks_df, "track_history")
 
     # artist_genres_df = get_artist_data(tracks_df)
