@@ -102,7 +102,7 @@ class Database:
             execute_values(self.cursor, query, df_tuples)
             self.connection.commit()
         except(psycopg2.IntegrityError) as error:
-            print(f"Duplicated records omitted. Error code: {error.pgcode}")
+            print(f"Error ocured during insert into table {table_name}. Error code: {error.pgcode}")
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error: {error}")
             self.connection.rollback()
@@ -167,15 +167,13 @@ if __name__ == "__main__":
             "album_id": "TEXT",
             "album_name": "TEXT", 
             "release_date": "DATETIME", # check format of the data before putting into the table
-            "popularity": "INTEGER",
             }       
 
         artists_cols = {
             "artist_id": "TEXT",
             "artist_name": "TEXT", 
             "popularity": "INTEGER", 
-            "followers": "INTEGER",
-            "type": "" # check what is this feature
+            "followers": "INTEGER"
             }  
 
 ## new table schema
@@ -191,21 +189,19 @@ if __name__ == "__main__":
             "id": "integer GENERATED ALWAYS AS IDENTITY",
             "album_id": "TEXT",
             "album_name": "TEXT",
-            "album_release_date": "timestamp",
-            "popularity": "integer"
+            "album_release_date": "timestamp"
             }
 
         artists_cols = {
             "id": "integer GENERATED ALWAYS AS IDENTITY",
             "artist_id": "TEXT",
             "artist_name": "TEXT",
-            "popularity": "integer",
+            "artist_popularity": "integer",
             "followers": "integer"
         }
 
         genres_cols = {
             "id": "integer GENERATED ALWAYS AS IDENTITY",
-            "genre_id": "TEXT",
             "genre_name": "TEXT"
         }
 
@@ -222,9 +218,9 @@ if __name__ == "__main__":
             "track_popularity": "integer",
             "danceability": "decimal",
             "energy": "decimal",
-            "track_key": "decimal", #check
+            "key": "decimal", 
             "loudness": "decimal",
-            "track_mode": "decimal",
+            "mode": "decimal",
             "speechiness": "decimal",
             "acousticness": "decimal",
             "instrumentalness": "decimal",
@@ -232,7 +228,8 @@ if __name__ == "__main__":
             "valence": "decimal",
             "tempo": "decimal",
             "duration_ms": "integer",
-            "time_signature": "integer"
+            "time_signature": "integer",
+            "is_explicit": "bool"
         }
 
 

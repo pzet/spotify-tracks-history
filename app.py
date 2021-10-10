@@ -61,7 +61,7 @@ class SpotifyAPI():
         duration_ms = []
         is_explicit = []
         track_name = []
-        song_popularity = []
+        track_popularity = []
         track_id = []
         artist_id = []
         played_at = []
@@ -78,7 +78,7 @@ class SpotifyAPI():
                 artist_id.append(song["track"]["album"]["artists"][0]["id"])
                 track_id.append(song["track"]["id"])
                 album_id.append(song["track"]["album"]["id"])
-                song_popularity.append(song["track"]["popularity"])
+                track_popularity.append(song["track"]["popularity"])
                 played_at.append(song["played_at"])
                 duration_ms.append(song["track"]["duration_ms"])
                 is_explicit.append(song["track"]["explicit"])
@@ -92,7 +92,7 @@ class SpotifyAPI():
             "artist_id": artist_id,
             "track_id": track_id,
             "album_id": album_id,
-            "song_popularity": song_popularity,
+            "track_popularity": track_popularity,
             "played_at": played_at,
             "duration_ms": duration_ms,
             "is_explicit": is_explicit
@@ -125,7 +125,7 @@ class SpotifyAPI():
         artist_genres = [",".join(x) for x in artist_genres]
         artist_genres_df = pd.DataFrame(
             {"artist_id": artist_id_list,
-            "popularity": artist_popularity,
+            "artist_popularity": artist_popularity,
             "followers": artist_followers,
             "artist_genres": artist_genres
             })
@@ -149,7 +149,11 @@ class SpotifyAPI():
         
         track_features_df = pd.DataFrame(track_features)
         track_features_df = track_features_df.rename(columns={"id": "track_id"})
-        track_features_df = track_features_df.drop(columns=["uri", "track_href", "analysis_url", "duration_ms", "type"])
+        track_features_df = track_features_df.drop(columns=["uri", 
+                                                            "track_href", 
+                                                            "analysis_url", 
+                                                            "duration_ms", 
+                                                            "type"])
         
         return track_features_df
 
@@ -212,13 +216,45 @@ if __name__ == "__main__":
 
     client = SpotifyAPI(token)
     df = client.get_tracks_data()
-    print(df.columns)
-
     db = database.Database()
+
     
-    # db.insert_into_table(tracks_df, "track_history")
+    # albums
+    db.insert_into_table(df[["album_id", "album_name", "album_release_date"]], "albums")
+    
+    # artists
+    db.insert_into_table(df[["artist_id", "artist_name", "artist_popularity", "followers"]], "artists")
 
-    # artist_genres_df = get_artist_data(tracks_df)
-    # db.insert_into_table(artist_genres_df, "artist_data")
+    # track_info
+    db.insert_into_table(df[["track_id",
+						"track_name",
+						"track_popularity",
+						"danceability",
+						"energy",
+						"key",
+						"loudness",
+						"mode",
+						"speechiness",
+						"acousticness",
+						"instrumentalness",
+						"liveness",
+						"valence",
+						"tempo",
+						"duration_ms",
+						"time_signature",
+                        "is_explicit"]], "track_info")
+    
+    # artists_genres
+    artist_genres_wide = df["artist_genres"].str.split("," , expand=True)
+    artist_genres = pd.concat([df[["artist_id"]], artist_genres_wide], axis=1)
+    artist_genres_long = artist_genres.melt(id_vars="artist_id")
+    artist_genres_long = artist_genres_long.drop(columns=["variable"])
+    artist_genres_long = artist_genres_long.dropna()
+    artist_genres_long = artist_genres_long.rename(columns={"value": "genre_name"})
+    db.insert_into_table(artist_genres_long[["artist_id"]], "artists")
+    db.insert_into_table(artist_genres_long[["genre_name"]], "genres")
+    db.insert_into_table(artist_genres_long, "artists_genres")
 
+    # recently_played
+    db.insert_into_table(df[["played_at", "track_id", "album_id", "artist_id"]], "recent_tracks")
     
