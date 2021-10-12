@@ -3,9 +3,10 @@ import datetime
 import webbrowser
 import json
 import requests
-
+import os 
 from flask import Flask, redirect, request
 from urllib.parse import urlencode
+import dotenv
 
 from secrets import CLIENT_ID, CLIENT_SECRET
 
@@ -23,6 +24,7 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
+dotenv.load_dotenv()
 
 app = Flask(__name__)
 
@@ -98,7 +100,9 @@ def obtain_auth_code() -> str:
 
 def get_client_creds_b64() -> str:
     """Returns credentials as b64 encoded string."""
-    client_creds = f"{CLIENT_ID}:{CLIENT_SECRET}"
+    client_id = os.environ["CLIENT_ID"]
+    client_secret = os.environ["CLIENT_SECRET"]
+    client_creds = f"{client_id}:{client_secret}"
     client_creds_b64 = base64.b64encode(client_creds.encode())
     return client_creds_b64.decode()
 
@@ -194,7 +198,7 @@ def index() -> redirect:
     "scope": SCOPE,
     # "state": STATE,
     "show_dialog": SHOW_DIALOG,
-    "client_id": CLIENT_ID
+    "client_id": os.environ["CLIENT_ID"]
 }
     auth_url_params = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_query_parameters)}"
     return redirect(auth_url_params)
