@@ -30,8 +30,7 @@ app = Flask(__name__)
 def json_not_contains(token_type: str) -> bool:
     # Check if secrets.json contains authorization code or token
     try:
-        with open("secrets.json", encoding="utf-8") as f:
-            secrets = json.load(f)
+        secrets = read_json()
     except ValueError: 
         with open("secrets.json", "w", encoding="utf-8") as f:
             secrets = {}
@@ -44,17 +43,21 @@ def json_not_contains(token_type: str) -> bool:
 
     return False
 
+def read_json(filename="secrets.json", encoding="utf-8") -> json:
+    """Reads the content of"""
+    with open(filename) as f:
+        content = json.load(f)
+    
+    return content
 
 def is_token_expired() -> bool:
     """Check if the token is already expired."""
-    now = datetime.datetime.now()
-    
-    with open("secrets.json") as f:
-        token_data = json.load(f)
+    token_data = read_json()
     
     expiration_time = token_data["expires_at"]
     expiration_time_datetime = datetime.datetime.strptime(expiration_time, ("%m/%d/%Y, %H:%M:%S"))
-
+    now = datetime.datetime.now()
+    
     return now > expiration_time_datetime
 
 
@@ -64,9 +67,7 @@ def auth_code_to_json(auth_code: str):
             "authorization_code": auth_code
         }
     
-    with open("secrets.json", encoding="utf-8") as f:
-        secrets = json.load(f)
-    
+    secrets = read_json()
     secrets.update(auth_code_dict)
 
     with open("secrets.json", "w", encoding="utf-8") as f:
@@ -116,9 +117,7 @@ def get_token() -> str:
         refresh_token()
         print("Token has been refreshed.")
     
-    with open("secrets.json") as f:
-        token_data = json.load(f)
-
+    token_data = read_json()
     access_token = token_data["access_token"]
     
     return access_token
@@ -150,8 +149,7 @@ def refresh_token():
     """Refreshes token if it's expired and updates it in the secrets.json file."""
     token_url = "https://accounts.spotify.com/api/token"
 
-    with open("secrets.json") as f:
-        token_data = json.load(f)
+    token_data = read_json()
 
     refresh_token = token_data["refresh_token"]
     client_credentials = get_client_creds_b64()
@@ -166,7 +164,6 @@ def refresh_token():
 
     r = requests.post(token_url, data=data, headers=headers)
     new_token_data = r.json()
-    print(new_token_data)
     refreshed_token = new_token_data["access_token"]
     token_data["access_token"] = refreshed_token
     token_expiration_time = datetime.datetime.now() + datetime.timedelta(seconds=token_data["expires_in"])
@@ -179,9 +176,7 @@ def refresh_token():
 
 def token_data_to_json_file(token_data):
     """Writes token data into JSON file."""
-    with open("secrets.json", encoding="utf-8") as f:
-        secrets_json = json.load(f)
-
+    secrets_json = read_json()
     secrets_json.update(token_data)
     
     with open("secrets.json", mode="w", encoding="utf-8") as f:
