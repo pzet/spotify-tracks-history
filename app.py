@@ -1,6 +1,3 @@
-import datetime
-import base64
-import json
 from pandas.core.frame import DataFrame
 from psycopg2.extensions import JSON
 
@@ -16,23 +13,6 @@ import database
 # Client credentials are kept in a separate file secrets.py, but you can input them here instead.
 # CLIENT_ID = ""
 # CLIENT_SECRET = ""
-
-# Spotify URLs
-SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
-SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
-
-# Server-side Parameters
-CLIENT_SIDE_URL = "http://127.0.0.1"
-PORT = "8080"
-REDIRECT_URI = f"{CLIENT_SIDE_URL}:{PORT}/callback/q"
-
-# Authentication query parameters
-SCOPE = "user-read-recently-played"
-STATE = ""
-SHOW_DIALOG = "false"
-
-# Authorization code
-# AUTH_TOKEN = None
 
 class SpotifyAPI():
 
