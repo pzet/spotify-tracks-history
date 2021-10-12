@@ -10,7 +10,10 @@ import pandas as pd
 
 class Database:
     DB_NAME = "spotify_tracks_history"
-    TABLE_NAME = "recently_played_tracks"
+    USER = "postgres"
+    PASSWORD = "postgres"
+    HOST = "127.0.0.1"
+    PORT = "5432"
     connection = None
     
     DB_PARAMS = {
@@ -125,58 +128,7 @@ if __name__ == "__main__":
         db_setup = Database(db_create_params)
         db_setup.create_database()
         db_spotify = Database()
-        
-        tracks_history_cols = {
-            "artist_name": "TEXT", 
-            "song_name": "TEXT", 
-            "album_name": "TEXT",
-            "album_release_date": "DATE",
-            "artist_id": "TEXT",
-            "song_id": "TEXT",
-            "album_id": "TEXT",
-            "song_popularity": "INTEGER",
-            "played_at": "TIMESTAMP"
-            }
-
-        artist_data_cols = {
-            "artist_id": "TEXT",
-            "artist_popularity": "INTEGER",
-            "artist_genres": "TEXT"
-            }
-
-        artists_cols = {
-            "artist_id": "TEXT",
-            "artist_popularity": "INTEGER",
-            "artist_genres": "TEXT"
-            }
-        
-        
-        # db_spotify.create_table(tracks_history_cols, "track_history")
-        # db_spotify.create_table(artist_data_cols, "artist_data")
-        # db_spotify.add_pk("track_history", "played_at_pk", "played_at")
-        # db_spotify.add_pk("artist_data", "artist_id_pk", "artist_id")
-
-        tracks_history_cols = {
-            "id": "INTEGER GENERATE ALWAYS AS IDENTITY", 
-            "played_at": "DATETIME", 
-            "track_id": "TEXT",
-            "album_id": "TEXT",
-            }
-
-        albums_cols = {
-            "album_id": "TEXT",
-            "album_name": "TEXT", 
-            "release_date": "DATETIME", # check format of the data before putting into the table
-            }       
-
-        artists_cols = {
-            "artist_id": "TEXT",
-            "artist_name": "TEXT", 
-            "popularity": "INTEGER", 
-            "followers": "INTEGER"
-            }  
-
-## new table schema
+ 
         recent_track_cols = {
             "id": "integer GENERATED ALWAYS AS IDENTITY",
             "played_at": "timestamp",
@@ -232,11 +184,7 @@ if __name__ == "__main__":
             "is_explicit": "bool"
         }
 
-
-        # db_spotify.create_table(tracks_history_cols, "recent_tracks")
-        # db_spotify.create_table(albums_cols, "albums")
-
-        ## create new tables
+        # Create tables in the database.
         db_spotify.create_table(recent_track_cols, "recent_tracks")
         db_spotify.create_table(albums_cols, "albums")
         db_spotify.create_table(artists_cols, "artists") 
@@ -245,14 +193,14 @@ if __name__ == "__main__":
         db_spotify.create_table(artists_genres_cols, "artists_genres")
         db_spotify.create_table(track_info_cols, "track_info")
 
-        # add primary keys
+        # Add Primary Keys.
         db_spotify.add_pk("albums", "album_id_pk", "album_id")
         db_spotify.add_pk("artists", "artist_id_pk", "artist_id")
         db_spotify.add_pk("genres", "genre_name_pk", "genre_name")
         db_spotify.add_pk("track_info", "track_id_pk", "track_id")
         db_spotify.add_pk("recent_tracks", "played_at_pk", "played_at")
 
-        # add foreign keys
+        # Add Foreign Keys.
         db_spotify.add_fk("recent_tracks", "track_id_fk", "track_id", "track_info", "track_id")
         db_spotify.add_fk("recent_tracks", "album_id_fk", "album_id", "albums", "album_id")
         db_spotify.add_fk("recent_tracks", "artist_id_fk", "artist_id", "artists", "artist_id")
