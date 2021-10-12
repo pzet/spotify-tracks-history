@@ -8,7 +8,6 @@ from flask import Flask, redirect, request
 from urllib.parse import urlencode
 import dotenv
 
-from secrets import CLIENT_ID, CLIENT_SECRET
 
 # Spotify URLs
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
@@ -224,6 +223,6 @@ def shutdown_server():
 
 if __name__ == "__main__":
     auth_code = obtain_auth_code()
-    print(get_token())
-    print(auth_code)
-    print(is_token_expired())
+    # print(get_token())
+    # print(auth_code)
+    # print(is_token_expired())
