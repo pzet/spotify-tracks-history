@@ -1,5 +1,7 @@
+import datetime
 import sys
 
+from datetime import date
 from psycopg2 import connect, sql
 from psycopg2.extras import execute_values
 import psycopg2
@@ -49,9 +51,13 @@ class Database:
                 print(error)
 
 
-    def create_table(self, cols_dict: dict, table_name: str):
+    def create_table(self, 
+                    cols_dict: dict, 
+                    table_name: str):
+
         cols_str = ", ".join([f"{key} {value}" for key, value in cols_dict.items()])
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_str})"
+
         try:
             self.cursor.execute(sql)
             print(f"Table {table_name} created succesfully.")
@@ -59,7 +65,11 @@ class Database:
             print(f"Table not created. Error code: {error.pgcode}")
 
 
-    def alter_table(self, table_name: str, constraint_name: str, constraint_type: str,  column: str):
+    def alter_table(self, 
+                    table_name: str, 
+                    constraint_name: str, 
+                    constraint_type: str,  
+                    column: str):
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
@@ -69,7 +79,11 @@ class Database:
         except(psycopg2.ProgrammingError) as error:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
-    def add_pk(self, table_name: str, constraint_name: str,  column: str):
+
+    def add_pk(self, 
+                table_name: str, 
+                constraint_name: str,  
+                column: str):
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -86,6 +100,7 @@ class Database:
                 column: str, 
                 table_name_fk: str,
                 column_fk: str):
+                
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -110,13 +125,38 @@ class Database:
             print(f"Error: {error}")
             self.connection.rollback()
 
-  
+    def count_records(self):
+        query = "SELECT COUNT(*) FROM recent_tracks"
+        try:
+            self.cursor.execute(query)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Query could not be executed. Error code: {error}")
+
+        records = self.cursor.fetchall()
+
+        today_records_query = f"""SELECT COUNT(*) 
+                                   FROM recent_tracks 
+                                   WHERE EXTRACT(YEAR FROM played_at) || '-' || EXTRACT(MONTH FROM played_at) || '-' || EXTRACT(DAY FROM played_at) = '{date.today()}'"""
+        
+        try:
+            self.cursor.execute(today_records_query)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Query could not be executed. Error code: {error}")
+        
+        today_records = self.cursor.fetchall()
+        print(f"{today_records[0][0]} new records have been added today.")
+        print(f"Your database contains {records[0][0]} records in total.")
+
+
     def __del__(self):
         self.cursor.close()
         self.connection.close()
 
 
 if __name__ == "__main__":
+
+    # If you run "python database.py setup", the program will connect do the default postgres database
+    # and create new database with parameters given in the class Database.
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
         db_create_params = {
                 "database": "postgres", 
@@ -125,10 +165,12 @@ if __name__ == "__main__":
                 "host": "127.0.0.1", 
                 "port": "5432"
                 }
+
         db_setup = Database(db_create_params)
         db_setup.create_database()
         db_spotify = Database()
  
+        # Define columns in the database tables.
         recent_track_cols = {
             "id": "integer GENERATED ALWAYS AS IDENTITY",
             "played_at": "timestamp",

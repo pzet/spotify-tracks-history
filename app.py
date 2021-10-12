@@ -164,8 +164,6 @@ class SpotifyAPI():
         track_features = self.get_track_features(recently_played)
 
         all_data = pd.merge(recently_played, artist_data, on="artist_id", how="left")
-        print(f"all_data type: {type(all_data)}")
-        print(f"track_features type: {type(track_features)}")
         all_data = pd.merge(all_data, track_features, on="track_id", how="inner")
 
         return all_data
@@ -207,6 +205,15 @@ class SpotifyAPI():
         
         return clean_tracks_dataset
 
+    def transform_artist_genres(self, df: DataFrame) -> DataFrame:
+        artist_genres_wide = df["artist_genres"].str.split("," , expand=True)
+        artist_genres = pd.concat([df[["artist_id"]], artist_genres_wide], axis=1)
+        artist_genres_long = artist_genres.melt(id_vars="artist_id")
+        artist_genres_long = artist_genres_long.drop(columns=["variable"])
+        artist_genres_long = artist_genres_long.dropna()
+        artist_genres_long = artist_genres_long.rename(columns={"value": "genre_name"})
+        
+        return artist_genres_long
 
   
 if __name__ == "__main__":
@@ -245,12 +252,7 @@ if __name__ == "__main__":
                         "is_explicit"]], "track_info")
     
     # artists_genres
-    artist_genres_wide = df["artist_genres"].str.split("," , expand=True)
-    artist_genres = pd.concat([df[["artist_id"]], artist_genres_wide], axis=1)
-    artist_genres_long = artist_genres.melt(id_vars="artist_id")
-    artist_genres_long = artist_genres_long.drop(columns=["variable"])
-    artist_genres_long = artist_genres_long.dropna()
-    artist_genres_long = artist_genres_long.rename(columns={"value": "genre_name"})
+    artist_genres_long = client.transform_artist_genres(df)
     db.insert_into_table(artist_genres_long[["artist_id"]], "artists")
     db.insert_into_table(artist_genres_long[["genre_name"]], "genres")
     db.insert_into_table(artist_genres_long, "artists_genres")
@@ -258,3 +260,4 @@ if __name__ == "__main__":
     # recently_played
     db.insert_into_table(df[["played_at", "track_id", "album_id", "artist_id"]], "recent_tracks")
     
+    db.count_records()
