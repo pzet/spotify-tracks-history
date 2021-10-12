@@ -1,15 +1,13 @@
 from pandas.core.frame import DataFrame
 from psycopg2.extensions import JSON
-
 import requests
 import pandas as pd
 
-# Comment this line if you input CLEINT_ID and CLIENT_SECRET below
+# Comment the line below if you want to input CLEINT_ID and CLIENT_SECRET directly in the script.
 from secrets import CLIENT_ID, CLIENT_SECRET
 import get_auth_code
 import database
 
-# Client credentials
 # Client credentials are kept in a separate file secrets.py, but you can input them here instead.
 # CLIENT_ID = ""
 # CLIENT_SECRET = ""
@@ -48,7 +46,6 @@ class SpotifyAPI():
         album_release_date = []
         album_name = []
         album_id = []
-        artist_genre = []
         
         for song in recently_played_json["items"]:
                 artist_name.append(song["track"]["album"]["artists"][0]["name"])
@@ -81,6 +78,7 @@ class SpotifyAPI():
         tracks_df = pd.DataFrame(tracks_dict, columns=list(tracks_dict.keys()))
     
         return tracks_df
+
 
     def get_artist_data(self, df: DataFrame) -> DataFrame:
         artist_genres = []
@@ -150,11 +148,11 @@ class SpotifyAPI():
         
 
     def clean_df(self, df: DataFrame) -> DataFrame:
-    # correct date if release date precision is year
+        # correct date if release date precision is year
         df["album_release_date"] = [f"{x}-01-01" if len(x) == 4 else x for x in df["album_release_date"].tolist()]
-    # correct date if release date precision is month
+        # correct date if release date precision is month
         df["album_release_date"] = [f"{x}-01" if len(x) == 7 else x for x in df["album_release_date"].tolist()]
-    # fill the genre with default value if empty
+        # fill the genre with default value if empty
         df["artist_genres"] = ["<unknown>" if len(x) == 0 else x for x in df["artist_genres"].tolist()]
 
         return df
@@ -176,6 +174,7 @@ class SpotifyAPI():
         
         return True
 
+
     def get_tracks_data(self) -> DataFrame:
         tracks_dataset = self.join_all_tracks_data()
         clean_tracks_dataset = self.clean_df(tracks_dataset)
@@ -184,6 +183,7 @@ class SpotifyAPI():
             return pd.DataFrame()
         
         return clean_tracks_dataset
+
 
     def transform_artist_genres(self, df: DataFrame) -> DataFrame:
         artist_genres_wide = df["artist_genres"].str.split("," , expand=True)
@@ -198,7 +198,6 @@ class SpotifyAPI():
   
 if __name__ == "__main__":
     auth_code = get_auth_code.obtain_auth_code()
-    print(f"The authorization code is: {auth_code}")
     token = get_auth_code.get_token()
 
     client = SpotifyAPI(token)

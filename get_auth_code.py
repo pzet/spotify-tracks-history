@@ -2,7 +2,6 @@ import base64
 import datetime
 import webbrowser
 import json
-import os
 import requests
 
 from flask import Flask, redirect, request
@@ -10,11 +9,11 @@ from urllib.parse import urlencode
 
 from secrets import CLIENT_ID, CLIENT_SECRET
 
-
+# Spotify URLs
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
-# Server-side Parameters
+# Server-side parameters
 CLIENT_SIDE_URL = "http://127.0.0.1"
 PORT = "8080"
 REDIRECT_URI = f"{CLIENT_SIDE_URL}:{PORT}/callback/q"
@@ -24,8 +23,8 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
-app = Flask(__name__)
 
+app = Flask(__name__)
 
 def json_not_contains(token_type: str) -> bool:
     # Check if secrets.json contains authorization code or token
@@ -79,12 +78,14 @@ def extract_auth_code() -> str:
     and shuts the server down (with GET request).
     """
     auth_code = request.args["code"]
-    r = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
+    _ = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
     auth_code_to_json(auth_code)
+
     return auth_code
 
 
 def obtain_auth_code() -> str:
+    """Gets an authorization code if it's missing from secrets.json file."""
     if json_not_contains("authorization_code"):
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
@@ -103,6 +104,8 @@ def get_client_creds_b64() -> str:
 
 
 def get_token() -> str:
+    """"Requests new token if one is missing from secrets.json file 
+        or refreshes the token if it's expired."""
     if json_not_contains("access_token"):
         request_token()
         print("New token obtained.")
@@ -119,7 +122,7 @@ def get_token() -> str:
     
 
 def request_token() -> str:
-    """Returns access tokes as JSON format."""
+    """Requests the authorization token Returns the access token in JSON format."""
     client_creds_b64 = get_client_creds_b64()
     auth_code = extract_auth_code()
     data = {
@@ -141,6 +144,7 @@ def request_token() -> str:
 
 
 def refresh_token():
+    """Refreshes token if it's expired and updates it in the secrets.json file."""
     token_url = "https://accounts.spotify.com/api/token"
 
     with open("secrets.json") as f:
@@ -171,6 +175,7 @@ def refresh_token():
 
 
 def token_data_to_json_file(token_data):
+    """Writes token data into JSON file."""
     with open("secrets.json", encoding="utf-8") as f:
         secrets_json = json.load(f)
 
@@ -207,6 +212,7 @@ def shutdown():
 
 
 def shutdown_server():
+    """Shuts the server down when GET method is invoked."""
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
