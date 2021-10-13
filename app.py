@@ -7,12 +7,6 @@ import pandas as pd
 import get_auth_code
 import database
 
-
-# Client credentials are kept in a separate file secrets.py, but you can input them here instead.
-# CLIENT_ID = ""
-# CLIENT_SECRET = ""
-
-
 class SpotifyAPI():
 
     API_VERSION = "v1"
