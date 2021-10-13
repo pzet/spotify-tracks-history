@@ -23,6 +23,7 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
+# Load Client ID and Client Secret as environmental variables.
 dotenv.load_dotenv()
 
 app = Flask(__name__)
@@ -44,7 +45,7 @@ def json_not_contains(token_type: str) -> bool:
     return False
 
 def read_json(filename="secrets.json", encoding="utf-8") -> json:
-    """Reads the content of"""
+    """Reads the content of JSON file."""
     with open(filename) as f:
         content = json.load(f)
     
@@ -53,7 +54,6 @@ def read_json(filename="secrets.json", encoding="utf-8") -> json:
 def is_token_expired() -> bool:
     """Check if the token is already expired."""
     token_data = read_json()
-    
     expiration_time = token_data["expires_at"]
     expiration_time_datetime = datetime.datetime.strptime(expiration_time, ("%m/%d/%Y, %H:%M:%S"))
     now = datetime.datetime.now()
@@ -76,7 +76,7 @@ def auth_code_to_json(auth_code: str):
 
 def extract_auth_code() -> str:
     """
-    Reads authorization code from request arguments 
+    Reads authorization code from request arguments, writes the code to JSON file
     and shuts the server down (with GET request).
     """
     auth_code = request.args["code"]
@@ -92,18 +92,18 @@ def obtain_auth_code() -> str:
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
     
-    with open("secrets.json") as f:
-        secrets_dict = json.load(f)
+    secrets_dict = read_json()
     
     return secrets_dict["authorization_code"]
 
 
 def get_client_creds_b64() -> str:
-    """Returns credentials as b64 encoded string."""
+    """Returns client credentials as b64 encoded string."""
     client_id = os.environ["CLIENT_ID"]
     client_secret = os.environ["CLIENT_SECRET"]
     client_creds = f"{client_id}:{client_secret}"
     client_creds_b64 = base64.b64encode(client_creds.encode())
+
     return client_creds_b64.decode()
 
 
@@ -124,7 +124,7 @@ def get_token() -> str:
     
 
 def request_token() -> str:
-    """Requests the authorization token Returns the access token in JSON format."""
+    """Performs a request for the authorization token. Returns the access token in JSON format."""
     client_creds_b64 = get_client_creds_b64()
     auth_code = extract_auth_code()
     data = {
@@ -136,7 +136,7 @@ def request_token() -> str:
     r = requests.post(SPOTIFY_TOKEN_URL, data=data, headers=headers)
     if r.status_code not in range(200, 299):
         print(r.json())
-        raise Exception(f"Authentication failed. Requests status code: {r.status_code}")
+        raise Exception(f"Authentication failed. Request status code: {r.status_code}")
     token_data = r.json()
     token_expiration_time = datetime.datetime.now() + datetime.timedelta(seconds=token_data["expires_in"])
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
@@ -146,14 +146,10 @@ def request_token() -> str:
 
 
 def refresh_token():
-    """Refreshes token if it's expired and updates it in the secrets.json file."""
-    token_url = "https://accounts.spotify.com/api/token"
-
+    """Refreshes token and updates it in the secrets.json file."""
     token_data = read_json()
-
     refresh_token = token_data["refresh_token"]
     client_credentials = get_client_creds_b64()
-
     data = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token
@@ -162,7 +158,7 @@ def refresh_token():
         "Authorization": f"Basic {client_credentials}"
     }
 
-    r = requests.post(token_url, data=data, headers=headers)
+    r = requests.post(SPOTIFY_TOKEN_URL, data=data, headers=headers)
     new_token_data = r.json()
     refreshed_token = new_token_data["access_token"]
     token_data["access_token"] = refreshed_token
