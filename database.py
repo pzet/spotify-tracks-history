@@ -125,6 +125,7 @@ class Database:
             print(f"Error: {error}")
             self.connection.rollback()
 
+
     def count_records(self):
         query = "SELECT COUNT(*) FROM recent_tracks"
         try:
@@ -144,7 +145,7 @@ class Database:
             print(f"Query could not be executed. Error code: {error}")
         
         today_records = self.cursor.fetchall()
-        print(f"{today_records[0][0]} new records have been added today.")
+        print(f"You have listened to {today_records[0][0]} records today.")
         print(f"Your database contains {records[0][0]} records in total.")
 
 
