@@ -1,4 +1,3 @@
-import datetime
 import sys
 
 from datetime import date
@@ -51,9 +50,7 @@ class Database:
                 print(error)
 
 
-    def create_table(self, 
-                    cols_dict: dict, 
-                    table_name: str):
+    def create_table(self, cols_dict: dict, table_name: str):
 
         cols_str = ", ".join([f"{key} {value}" for key, value in cols_dict.items()])
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_str})"
@@ -65,11 +62,13 @@ class Database:
             print(f"Table not created. Error code: {error.pgcode}")
 
 
-    def alter_table(self, 
-                    table_name: str, 
-                    constraint_name: str, 
-                    constraint_type: str,  
-                    column: str):
+    def alter_table(
+        self, 
+        table_name: str, 
+        constraint_name: str, 
+        constraint_type: str,  
+        column: str
+        ):
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
@@ -80,10 +79,7 @@ class Database:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
 
-    def add_pk(self, 
-                table_name: str, 
-                constraint_name: str,  
-                column: str):
+    def add_pk(self, table_name: str, constraint_name: str, column: str):
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -94,12 +90,14 @@ class Database:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
 
-    def add_fk(self, 
-                table_name: str, 
-                constraint_name: str, 
-                column: str, 
-                table_name_fk: str,
-                column_fk: str):
+    def add_fk(
+        self, 
+        table_name: str, 
+        constraint_name: str, 
+        column: str, 
+        table_name_fk: str,
+        column_fk: str
+    ):
                 
         try:
             sql = f"""
