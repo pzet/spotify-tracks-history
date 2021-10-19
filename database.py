@@ -1,6 +1,6 @@
 import sys
-
 from datetime import date
+
 from psycopg2 import connect, sql
 from psycopg2.extras import execute_values
 import psycopg2
@@ -148,9 +148,11 @@ class Database:
 
 
     def __del__(self):
-        self.cursor.close()
-        self.connection.close()
-
+        try:
+            self.cursor.close()
+            self.connection.close()
+        except AttributeError as error:
+            print(f"{error}.\nIt seems that connection to the database could not be established.")
 
 if __name__ == "__main__":
 
