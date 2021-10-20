@@ -27,15 +27,27 @@ class Database:
 
     def __init__(self, params=DB_PARAMS):
         try:
-            self.connection = connect(**params)
+            self.connection = self.connect_to_db(params)
             self.connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
             self.connection.autocommit = True
             self.cursor = self.connection.cursor()
-        except (Exception, psycopg2.DatabaseError) as connection_error:
-            print(connection_error)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
             sys.exit(1)
 
         
+    def connect_to_db(self, params: dict):
+        conn = None
+        try:
+            print("Connecting to the PostgreSQL database...")
+            conn = connect(**params)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+            sys.exit(1)
+
+        return conn
+
+
     def create_database(self):
         sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
         self.cursor.execute(sql_db_exists)
