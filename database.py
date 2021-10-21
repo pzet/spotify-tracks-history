@@ -37,6 +37,7 @@ class Database:
 
         
     def connect_to_db(self, params: dict):
+        """Connect to the PostgreSQL database server."""
         conn = None
         try:
             print("Connecting to the PostgreSQL database...")
@@ -49,6 +50,7 @@ class Database:
 
 
     def create_database(self):
+        """Execute a CREATE DATABASE request if the dabase doesn't already exists."""
         sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
         self.cursor.execute(sql_db_exists)
         exists = self.cursor.fetchone()
@@ -63,7 +65,7 @@ class Database:
 
 
     def create_table(self, cols_dict: dict, table_name: str):
-
+        """Execute a single CREATE TABLE request."""
         cols_str = ", ".join([f"{key} {value}" for key, value in cols_dict.items()])
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_str})"
 
@@ -92,6 +94,7 @@ class Database:
 
 
     def add_pk(self, table_name: str, constraint_name: str, column: str):
+        """Sets PRIMARY KEY on the existing table."""
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -110,7 +113,7 @@ class Database:
         table_name_fk: str,
         column_fk: str
     ):
-                
+        """Sets FOREIGN KEY on existing tables."""
         try:
             sql = f"""
             ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -122,6 +125,7 @@ class Database:
 
 
     def insert_into_table(self, data: DataFrame, table_name: str):
+        """Inserts data into table."""
         df_numpy = data.to_numpy()
         df_tuples = [tuple(row) for row in list(df_numpy)]
         cols = ','.join(list(data.columns))
@@ -137,6 +141,8 @@ class Database:
 
 
     def count_records(self):
+        """Counts records added to the database in the current date 
+           and the overall number of records in the database."""
         query = "SELECT COUNT(*) FROM recent_tracks"
         try:
             self.cursor.execute(query)
