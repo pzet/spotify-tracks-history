@@ -42,6 +42,7 @@ class Database:
         try:
             print("Connecting to the PostgreSQL database...")
             conn = connect(**params)
+            print("Connection succesful.")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             sys.exit(1)
@@ -50,7 +51,10 @@ class Database:
 
 
     def create_database(self):
-        """Execute a CREATE DATABASE request if the dabase doesn't already exists."""
+        """
+        Execute a CREATE DATABASE request 
+        if the dabase doesn't already exists.
+        """
         sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
         self.cursor.execute(sql_db_exists)
         exists = self.cursor.fetchone()
@@ -134,15 +138,18 @@ class Database:
             execute_values(self.cursor, query, df_tuples)
             self.connection.commit()
         except(psycopg2.IntegrityError) as error:
-            print(f"Error ocured during insert into table {table_name}. Error code: {error.pgcode}")
+            print(f"""Error occurred during insert into table {table_name}. 
+                      Error code: {error.pgcode}""")
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error: {error}")
             self.connection.rollback()
 
 
     def count_records(self):
-        """Counts records added to the database in the current date 
-           and the overall number of records in the database."""
+        """
+        Counts records added to the database in the current date 
+        and the overall number of records in the database.
+        """
         query = "SELECT COUNT(*) FROM recent_tracks"
         try:
             self.cursor.execute(query)
@@ -153,7 +160,11 @@ class Database:
 
         today_records_query = f"""SELECT COUNT(*) 
                                    FROM recent_tracks 
-                                   WHERE EXTRACT(YEAR FROM played_at) || '-' || EXTRACT(MONTH FROM played_at) || '-' || EXTRACT(DAY FROM played_at) = '{date.today()}'"""
+                                   WHERE EXTRACT(YEAR FROM played_at) 
+                                         || '-' 
+                                         || EXTRACT(MONTH FROM played_at) 
+                                         || '-' 
+                                         || EXTRACT(DAY FROM played_at) = '{date.today()}'"""
         
         try:
             self.cursor.execute(today_records_query)
@@ -170,12 +181,14 @@ class Database:
             self.cursor.close()
             self.connection.close()
         except AttributeError as error:
-            print(f"{error}.\nIt seems that connection to the database could not be established.")
+            print(f"""{error}.\nIt seems that connection to the database 
+                      could not be established.""")
 
 if __name__ == "__main__":
 
-    # If you run "python database.py setup", the program will connect do the default postgres database
-    # and create new database with parameters given in the class Database.
+    # If you run "python database.py setup", the program will connect 
+    # to the default postgres database and create new database with 
+    # parameters given in the class Database.
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
         db_create_params = {
                 "database": "postgres", 
