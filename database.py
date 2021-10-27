@@ -158,13 +158,15 @@ class Database:
 
         records = self.cursor.fetchall()
 
-        today_records_query = f"""SELECT COUNT(*) 
-                                   FROM recent_tracks 
-                                   WHERE EXTRACT(YEAR FROM played_at) 
-                                         || '-' 
-                                         || EXTRACT(MONTH FROM played_at) 
-                                         || '-' 
-                                         || EXTRACT(DAY FROM played_at) = '{date.today()}'"""
+        today_records_query = f"""
+                                SELECT COUNT(*) 
+                                FROM recent_tracks 
+                                WHERE EXTRACT(YEAR FROM played_at) 
+                                   || '-' 
+                                   || EXTRACT(MONTH FROM played_at) 
+                                   || '-' 
+                                   || EXTRACT(DAY FROM played_at) = '{date.today()}'
+                                """
         
         try:
             self.cursor.execute(today_records_query)
