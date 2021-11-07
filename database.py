@@ -159,13 +159,13 @@ class Database:
         records = self.cursor.fetchall()
 
         today_records_query = f"""
-                                SELECT COUNT(*) 
+                                SELECT COUNT(*)
                                 FROM recent_tracks 
                                 WHERE EXTRACT(YEAR FROM played_at) 
                                    || '-' 
                                    || EXTRACT(MONTH FROM played_at) 
                                    || '-' 
-                                   || EXTRACT(DAY FROM played_at) = '{date.today()}'
+                                   || EXTRACT(DAY FROM played_at) = '{str(date.today()).replace('-0', '-')}'
                                 """
         
         try:
