@@ -123,15 +123,24 @@ class Database:
         column_fk: str
     ):
         """Sets FOREIGN KEY on existing tables."""
+        sql = f"""
+                ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
+                ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column}) REFERENCES {table_name_fk} ({column_fk});
+                """
         try:
-            sql = f"""
-            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
-            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} FOREIGN KEY ({column}) REFERENCES {table_name_fk} ({column_fk});
-            """
             self.cursor.execute(sql)
         except(psycopg2.ProgrammingError) as error:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
+    
+    def add_constraint_unique(self, table_name: str, constraint_name: str, *columns):
+        columns_str = ", ".join(columns[0])
+        """Add UNIQUE constraint to assure unique values in column(s)."""
+        sql = f"""ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} UNIQUE ({columns_str})"""
+        try:
+            self.cursor.execute(sql)
+        except(psycopg2.ProgrammingError) as error:
+            print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
     def insert_into_table(self, data: DataFrame, table_name: str):
         """Inserts data into table."""
@@ -287,3 +296,6 @@ if __name__ == "__main__":
         db_spotify.add_fk("recent_tracks", "artist_id_fk", "artist_id", "artists", "artist_id")
         db_spotify.add_fk("artists_genres", "artist_id_fk", "artist_id", "artists", "artist_id")
         db_spotify.add_fk("artists_genres", "genre_name_fk", "genre_name", "genres", "genre_name")
+
+        # Add UNIQUE constraint.
+        db_spotify.add_constraint_unique("artists_genres", "unique_artist_genre", ["artist_id", "genre_name"])
