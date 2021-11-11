@@ -1,5 +1,6 @@
 import sys
 from datetime import date
+import os
 
 from psycopg2 import connect, sql
 from psycopg2.extras import execute_values
@@ -7,7 +8,11 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from pandas.core.frame import DataFrame
 import pandas as pd
+import dotenv   
 
+
+# Load database parameters as environmental variables.
+dotenv.load_dotenv()
 
 class Database:
     DB_NAME = "spotify_tracks_history"
@@ -18,11 +23,11 @@ class Database:
     connection = None
     
     DB_PARAMS = {
-                "database": f"{DB_NAME}", 
-                "user": "postgres", 
-                "password": "postgres", 
-                "host": "127.0.0.1", 
-                "port": "5432"
+                "database": os.environ["database"], 
+                "user": os.environ["user"], 
+                "password": os.environ["password"], 
+                "host": os.environ["host"], 
+                "port": os.environ["port"]
                 }
 
     def __init__(self, params=DB_PARAMS):
