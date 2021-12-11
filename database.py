@@ -15,11 +15,6 @@ import dotenv
 dotenv.load_dotenv()
 
 class Database:
-    DB_NAME = "spotify_tracks_history"
-    USER = "postgres"
-    PASSWORD = "postgres"
-    HOST = "127.0.0.1"
-    PORT = "5432"
     connection = None
     
     DB_PARAMS = {
@@ -189,7 +184,7 @@ class Database:
         
         today_records = self.cursor.fetchall()
         print(f"You have listened to {today_records[0][0]} records today.")
-        print(f"Your database contains {records[0][0]} records in total.")
+        print(f"Your listening history contains {records[0][0]} records in total.")
 
 
     def __del__(self):
@@ -203,21 +198,11 @@ class Database:
 if __name__ == "__main__":
 
     # If you run "python database.py setup", the program will connect 
-    # to the default postgres database and create new database with 
-    # parameters given in the class Database.
-    if len(sys.argv) > 1 and sys.argv[1] == "setup":
-        db_create_params = {
-                "database": "postgres", 
-                "user": "postgres", 
-                "password": "postgres", 
-                "host": "127.0.0.1", 
-                "port": "5432"
-                }
+    # to the database and create all tables and constraints.
 
-        db_setup = Database(db_create_params)
-        db_setup.create_database()
+    if len(sys.argv) > 1 and sys.argv[1] == "setup":
+
         db_spotify = Database()
- 
         # Define columns in the database tables.
         recent_track_cols = {
             "id": "integer GENERATED ALWAYS AS IDENTITY",
