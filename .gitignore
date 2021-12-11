@@ -2,3 +2,4 @@ secrets.json
 *.env
 *.xlsx
 test.py
+secrets.toml
