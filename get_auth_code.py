@@ -46,7 +46,9 @@ def json_not_contains(token_type: str) -> bool:
 
 def read_json(filename="secrets.json", encoding="utf-8") -> json:
     """Reads the content of JSON file."""
-    with open(filename) as f:
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    file_dir = cur_dir + '\\' + filename
+    with open(file_dir) as f:
         content = json.load(f)
     
     return content
@@ -61,7 +63,7 @@ def is_token_expired() -> bool:
     return now > expiration_time_datetime
 
 
-def auth_code_to_json(auth_code: str):
+def auth_code_to_json(auth_code: str, secrets_filename='secrets.json'):
     """Write authorization code to the secrets.json file"""
     auth_code_dict = {
             "authorization_code": auth_code
@@ -69,8 +71,10 @@ def auth_code_to_json(auth_code: str):
     
     secrets = read_json()
     secrets.update(auth_code_dict)
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    file_dir = cur_dir + '\\' + secrets_filename
 
-    with open("secrets.json", "w", encoding="utf-8") as f:
+    with open(file_dir, "w", encoding="utf-8") as f:
         json.dump(secrets, f, indent=0)
         
 
@@ -145,7 +149,7 @@ def request_token() -> str:
     return token_data["access_token"]
 
 
-def refresh_token():
+def refresh_token(secrets_filename='secrets.json'):
     """Refreshes token and updates it in the secrets.json file."""
     token_data = read_json()
     refresh_token = token_data["refresh_token"]
@@ -166,16 +170,22 @@ def refresh_token():
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
     token_data["expires_at"] = token_expiration_time
 
-    with open("secrets.json", "w") as f:
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    file_dir = cur_dir + '\\' + secrets_filename
+
+    with open(file_dir, "w") as f:
         json.dump(token_data, f, indent=0)
 
 
-def token_data_to_json_file(token_data):
+def token_data_to_json_file(token_data, secrets_filename='secrets.json'):
     """Writes token data into JSON file."""
     secrets_json = read_json()
     secrets_json.update(token_data)
-    
-    with open("secrets.json", mode="w", encoding="utf-8") as f:
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    file_dir = cur_dir + '\\' + secrets_filename
+
+
+    with open(file_dir, mode="w", encoding="utf-8") as f:
         json.dump(secrets_json, f, indent=0)
 
 
