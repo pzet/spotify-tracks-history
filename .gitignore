@@ -1,10 +1,12 @@
 # Bytecode cache files
 __pycache__/
-*py[cod]
+*.py[cod]
 
 # Files containing user credentials
 *.json
 secrets.json
+
+# Environment
 .env
 
 # Files for testing
