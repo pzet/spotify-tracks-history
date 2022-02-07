@@ -45,6 +45,7 @@ class Database:
             print("Connection succesful.")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print('Could not connect to the database.')
             sys.exit(1)
 
         return conn
