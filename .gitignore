@@ -1,5 +1,13 @@
+# Bytecode cache files
+__pycache__/
+*py[cod]
+
+# Files containing user credentials
+*.json
 secrets.json
 .env
+
+# Files for testing
 *.xlsx
 test.py
 secrets.toml
