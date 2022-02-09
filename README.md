@@ -10,7 +10,30 @@ The API was written from scratch for learning purposes. However, you can use Spo
 
 ## Running project
 1. Set Redirect URI in your Spotify App to `http://127.0.0.1:8080/callback/q`.
-2. Put your `CLIENT_ID` and `CLIENT_SECRET` in `.env` file.
+2. Put your `CLIENT_ID`, `CLIENT_SECRET` and database parameters in `.env` file. It should look like this:
+```
+# Spotify Client Credentials
+CLIENT_ID = ""                          # client id for Spotify API
+CLIENT_SECRET = ""                      # client secret for Spotify API
+
+# Database Parameters:
+database = "spotify_tracks_history"     # database name
+user = "postgres_spotify"               # user name
+password = "oHZPuHCFgZW96^B"            # user password
+host = ""                               # database host
+port = "5432"                           # database port (5432 as default)
+```
+3. The API tokens are stored in `secrets.json` file locally. To run this project, create `secrets.json` as following:
+```
+{
+"authorization_code": "",
+"access_token": "",
+"token_type": "Bearer",
+"expires_in": 3600,
+"refresh_token": "",
+"expires_at": ""
+}
+```
 3. Install the dependencies by running `python -m pip install -r requirements.txt`.
 4. To setup the PostgreSQL database run the following command: `python database.py setup`. This script assumes that the default `postgres` database (with the default parameters) already exists. Please modify these settings if you prefer to either connect to different database to create the dedicated Spotify Recently Played Tracks database.
 Alternatively, you can create the database manually and connect to it by modyfying `DB_NAME` variable. 
