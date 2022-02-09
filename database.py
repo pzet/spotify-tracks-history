@@ -51,22 +51,22 @@ class Database:
         return conn
 
 
-    def create_database(self):
-        """
-        Execute a CREATE DATABASE request 
-        if the dabase doesn't already exists.
-        """
-        sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
-        self.cursor.execute(sql_db_exists)
-        exists = self.cursor.fetchone()
-        if not exists:
-            try:
-                sql = f"""CREATE DATABASE {self.DB_NAME}"""
-                self.cursor.execute(sql)
-                print("Database created succesfully.")
+    # def create_database(self):
+    #     """
+    #     Execute a CREATE DATABASE request 
+    #     if the dabase doesn't already exists.
+    #     """
+    #     sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
+    #     self.cursor.execute(sql_db_exists)
+    #     exists = self.cursor.fetchone()
+    #     if not exists:
+    #         try:
+    #             sql = f"""CREATE DATABASE {self.DB_NAME}"""
+    #             self.cursor.execute(sql)
+    #             print("Database created succesfully.")
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
+    #         except (Exception, psycopg2.DatabaseError) as error:
+    #             print(error)
 
 
     def create_table(self, cols_dict: dict, table_name: str):

@@ -23,6 +23,7 @@ password = "oHZPuHCFgZW96^B"            # user password
 host = ""                               # database host
 port = "5432"                           # database port (5432 as default)
 ```
+The `database` should correspond to the name of already existing database. 
 3. The API tokens are stored in `secrets.json` file locally. To run this project, create `secrets.json` as following:
 ```
 {
@@ -35,7 +36,7 @@ port = "5432"                           # database port (5432 as default)
 }
 ```
 3. Install the dependencies by running `python -m pip install -r requirements.txt`.
-4. To setup the PostgreSQL database run the following command: `python database.py setup`. This script assumes that the default `postgres` database (with the default parameters) already exists. Please modify these settings if you prefer to either connect to different database to create the dedicated Spotify Recently Played Tracks database.
+4. Create the database and pass its name to `DB_NAME` variable in `database.py` file. Run `python database.py setup` to create the tables.
 Alternatively, you can create the database manually and connect to it by modyfying `DB_NAME` variable. 
 !['ER_diagram'](./images/ER_diagram.jpg)
 5. To authorize the client, extract the data from Spotify Web API into pandas DataFrame, transform and clean it and finally load the data into the database, run `python app.py`.
