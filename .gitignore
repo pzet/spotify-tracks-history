@@ -2,11 +2,14 @@
 __pycache__/
 *.py[cod]
 
+# Virtual env
+venv-spotify-tracks-history
+
 # Files containing user credentials
 *.json
 secrets.json
 
-# Environment
+# Environmental variables
 .env
 
 # Files for testing
