@@ -72,7 +72,7 @@ def auth_code_to_json(auth_code: str, secrets_filename='secrets.json'):
     secrets = read_json()
     secrets.update(auth_code_dict)
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = cur_dir + '\\' + secrets_filename
+    file_dir = os.path.join(cur_dir, secrets_filename)
 
     with open(file_dir, "w", encoding="utf-8") as f:
         json.dump(secrets, f, indent=0)
@@ -171,7 +171,7 @@ def refresh_token(secrets_filename='secrets.json'):
     token_data["expires_at"] = token_expiration_time
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = cur_dir + '\\' + secrets_filename
+    file_dir = os.path.join(cur_dir, secrets_filename)
 
     with open(file_dir, "w") as f:
         json.dump(token_data, f, indent=0)
@@ -182,7 +182,7 @@ def token_data_to_json_file(token_data, secrets_filename='secrets.json'):
     secrets_json = read_json()
     secrets_json.update(token_data)
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = cur_dir + '\\' + secrets_filename
+    file_dir = os.path.join(cur_dir, secrets_filename)
 
 
     with open(file_dir, mode="w", encoding="utf-8") as f:
