@@ -2,8 +2,11 @@
 __pycache__/
 *.py[cod]
 
+# Environmental variables and user credentials
 secrets.json
 .env
+
+# Temp files
 *.xlsx
 test.py
 secrets.toml
