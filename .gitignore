@@ -1,3 +1,7 @@
+# Cache files
+__pycache__/
+*.py[cod]
+
 secrets.json
 .env
 *.xlsx
