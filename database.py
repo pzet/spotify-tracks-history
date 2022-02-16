@@ -25,7 +25,7 @@ class Database:
                 "port": os.environ["port"]
                 }
 
-    def __init__(self, params=DB_PARAMS):
+    def __init__(self, params=DB_PARAMS) -> None:
         try:
             self.connection = self.connect_to_db(params)
             self.connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
@@ -36,7 +36,7 @@ class Database:
             sys.exit(1)
 
         
-    def connect_to_db(self, params: dict):
+    def connect_to_db(self, params: dict) -> psycopg2.connection:
         """Connect to the PostgreSQL database server."""
         conn = None
         try:
@@ -50,25 +50,25 @@ class Database:
         return conn
 
 
-    def create_database(self):
-        """
-        Execute a CREATE DATABASE request 
-        if the dabase doesn't already exists.
-        """
-        sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
-        self.cursor.execute(sql_db_exists)
-        exists = self.cursor.fetchone()
-        if not exists:
-            try:
-                sql = f"""CREATE DATABASE {self.DB_NAME}"""
-                self.cursor.execute(sql)
-                print("Database created succesfully.")
+    # def create_database(self):
+    #     """
+    #     Execute a CREATE DATABASE request 
+    #     if the dabase doesn't already exists.
+    #     """
+    #     sql_db_exists = f"SELECT 1 FROM pg_catalog.pg_database pd WHERE datname = '{self.DB_NAME}';"
+    #     self.cursor.execute(sql_db_exists)
+    #     exists = self.cursor.fetchone()
+    #     if not exists:
+    #         try:
+    #             sql = f"""CREATE DATABASE {self.DB_NAME}"""
+    #             self.cursor.execute(sql)
+    #             print("Database created succesfully.")
 
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
+    #         except (Exception, psycopg2.DatabaseError) as error:
+    #             print(error)
 
 
-    def create_table(self, cols_dict: dict, table_name: str):
+    def create_table(self, cols_dict: dict, table_name: str) -> None:
         """Execute a single CREATE TABLE request."""
         cols_str = ", ".join([f"{key} {value}" for key, value in cols_dict.items()])
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_str})"
@@ -80,24 +80,24 @@ class Database:
             print(f"Table not created. Error code: {error.pgcode}")
 
 
-    def alter_table(
-        self, 
-        table_name: str, 
-        constraint_name: str, 
-        constraint_type: str,  
-        column: str
-        ):
-        try:
-            sql = f"""
-            ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
-            ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} {constraint_type} ({column});
-            """
-            self.cursor.execute(sql)
-        except(psycopg2.ProgrammingError) as error:
-            print(f"Error ocured: {error}\nError code: {error.pgcode}")
+    # def alter_table(
+    #     self, 
+    #     table_name: str, 
+    #     constraint_name: str, 
+    #     constraint_type: str,  
+    #     column: str
+    #     ):
+    #     try:
+    #         sql = f"""
+    #         ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name};
+    #         ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} {constraint_type} ({column});
+    #         """
+    #         self.cursor.execute(sql)
+    #     except(psycopg2.ProgrammingError) as error:
+    #         print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
 
-    def add_pk(self, table_name: str, constraint_name: str, column: str):
+    def add_pk(self, table_name: str, constraint_name: str, column: str) -> None:
         """Sets PRIMARY KEY on the existing table."""
         try:
             sql = f"""
@@ -116,7 +116,7 @@ class Database:
         column: str, 
         table_name_fk: str,
         column_fk: str
-    ):
+    ) -> None:
         """Sets FOREIGN KEY on existing tables."""
         sql = f"""
                 ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {constraint_name} CASCADE;
@@ -128,7 +128,7 @@ class Database:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
 
     
-    def add_constraint_unique(self, table_name: str, constraint_name: str, *columns):
+    def add_constraint_unique(self, table_name: str, constraint_name: str, *columns) -> None:
         columns_str = ", ".join(columns[0])
         """Add UNIQUE constraint to assure unique values in column(s)."""
         sql = f"""ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} UNIQUE ({columns_str})"""
@@ -136,8 +136,9 @@ class Database:
             self.cursor.execute(sql)
         except(psycopg2.ProgrammingError) as error:
             print(f"Error ocured: {error}\nError code: {error.pgcode}")
+            
 
-    def insert_into_table(self, data: DataFrame, table_name: str):
+    def insert_into_table(self, data: DataFrame, table_name: str) -> None:
         """Inserts data into table."""
         df_numpy = data.to_numpy()
         df_tuples = [tuple(row) for row in list(df_numpy)]
@@ -154,7 +155,7 @@ class Database:
             self.connection.rollback()
 
 
-    def count_records(self):
+    def count_records(self) -> None:
         """
         Counts records added to the database in the current date 
         and the overall number of records in the database.
@@ -187,7 +188,7 @@ class Database:
         print(f"Your listening history contains {records[0][0]} records in total.")
 
 
-    def __del__(self):
+    def __del__(self) -> None:
         try:
             self.cursor.close()
             self.connection.close()

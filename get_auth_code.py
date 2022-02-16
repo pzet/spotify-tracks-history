@@ -44,10 +44,10 @@ def json_not_contains(token_type: str) -> bool:
 
     return False
 
-def read_json(filename="secrets.json", encoding="utf-8") -> json:
+def read_json(secrets_filename="secrets.json", encoding="utf-8") -> json:
     """Reads the content of JSON file."""
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = cur_dir + '\\' + filename
+    file_dir = os.path.join(cur_dir, secrets_filename)
     with open(file_dir) as f:
         content = json.load(f)
     
@@ -63,7 +63,7 @@ def is_token_expired() -> bool:
     return now > expiration_time_datetime
 
 
-def auth_code_to_json(auth_code: str, secrets_filename='secrets.json'):
+def auth_code_to_json(auth_code: str, secrets_filename='secrets.json') -> None:
     """Write authorization code to the secrets.json file"""
     auth_code_dict = {
             "authorization_code": auth_code
@@ -99,6 +99,7 @@ def obtain_auth_code() -> str:
     secrets_dict = read_json()
     
     return secrets_dict["authorization_code"]
+
 
 
 def get_client_creds_b64() -> str:
@@ -146,6 +147,7 @@ def request_token() -> str:
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
     token_data["expires_at"] = token_expiration_time
     token_data_to_json_file(token_data)
+    
     return token_data["access_token"]
 
 
