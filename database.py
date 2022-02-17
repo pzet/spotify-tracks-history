@@ -36,7 +36,7 @@ class Database:
             sys.exit(1)
 
         
-    def connect_to_db(self, params: dict) -> psycopg2.connection:
+    def connect_to_db(self, params: dict) -> connection:
         """Connect to the PostgreSQL database server."""
         conn = None
         try:
