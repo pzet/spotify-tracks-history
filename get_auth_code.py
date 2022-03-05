@@ -23,6 +23,9 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
+# Secrets filename
+SECRETS_FILE = 'secrets.json'
+
 # Load Client ID and Client Secret as environmental variables.
 dotenv.load_dotenv()
 
@@ -33,7 +36,7 @@ def json_not_contains(token_type: str) -> bool:
     try:
         secrets = read_json()
     except ValueError: 
-        with open("secrets.json", "w", encoding="utf-8") as f:
+        with open(SECRETS_FILE, "w", encoding="utf-8") as f:
             secrets = {}
             json.dump(secrets, f)
 
@@ -44,7 +47,7 @@ def json_not_contains(token_type: str) -> bool:
 
     return False
 
-def read_json(secrets_filename="secrets.json", encoding="utf-8") -> json:
+def read_json(secrets_filename=SECRETS_FILE, encoding="utf-8") -> json:
     """Reads the content of JSON file."""
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     file_dir = os.path.join(cur_dir, secrets_filename)
@@ -63,7 +66,7 @@ def is_token_expired() -> bool:
     return now > expiration_time_datetime
 
 
-def auth_code_to_json(auth_code: str, secrets_filename='secrets.json') -> None:
+def auth_code_to_json(auth_code: str, secrets_filename=SECRETS_FILE) -> None:
     """Write authorization code to the secrets.json file"""
     auth_code_dict = {
             "authorization_code": auth_code
@@ -151,7 +154,7 @@ def request_token() -> str:
     return token_data["access_token"]
 
 
-def refresh_token(secrets_filename='secrets.json'):
+def refresh_token(secrets_filename=SECRETS_FILE):
     """Refreshes token and updates it in the secrets.json file."""
     token_data = read_json()
     refresh_token = token_data["refresh_token"]
@@ -179,7 +182,7 @@ def refresh_token(secrets_filename='secrets.json'):
         json.dump(token_data, f, indent=0)
 
 
-def token_data_to_json_file(token_data, secrets_filename='secrets.json'):
+def token_data_to_json_file(token_data, secrets_filename=SECRETS_FILE):
     """Writes token data into JSON file."""
     secrets_json = read_json()
     secrets_json.update(token_data)
