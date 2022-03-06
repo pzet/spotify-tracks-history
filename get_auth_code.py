@@ -23,8 +23,6 @@ SCOPE = "user-read-recently-played"
 STATE = ""
 SHOW_DIALOG = "false"
 
-# Secrets filename
-SECRETS_FILE = 'secrets.json'
 
 # Load Client ID and Client Secret as environmental variables.
 dotenv.load_dotenv()
@@ -169,7 +167,7 @@ def request_token() -> str:
     return token_data["access_token"]
 
 
-def refresh_token(secrets_filename=SECRETS_FILE):
+def refresh_token() -> None:
     """Refreshes token and updates it in the secrets.json file."""
     token_data = JSON_handler.read()
     refresh_token = token_data["refresh_token"]
@@ -190,11 +188,7 @@ def refresh_token(secrets_filename=SECRETS_FILE):
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
     token_data["expires_at"] = token_expiration_time
 
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = os.path.join(cur_dir, secrets_filename)
-
-    with open(file_dir, "w") as f:
-        json.dump(token_data, f, indent=0)
+    JSON_handler.write(token_data)
 
 
 # Flask app
