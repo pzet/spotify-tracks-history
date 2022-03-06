@@ -31,6 +31,49 @@ dotenv.load_dotenv()
 
 app = Flask(__name__)
 
+class JSON_handler:
+
+    SECRETS_FILE_JSON = 'secrets.json'
+
+    @classmethod
+    def read(cls) -> dict:
+        """Reads the content of JSON file."""
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE_JSON)
+        with open(file_dir) as f:
+            content = json.load(f)
+    
+        return content
+
+    @classmethod
+    def json_not_contains(cls, token_type: str) -> bool:
+    # Check if secrets.json contains authorization code or token
+        try:
+            secrets = cls.read()
+        except ValueError: 
+            with open(SECRETS_FILE, "w", encoding="utf-8") as f:
+                secrets = {}
+                json.dump(secrets, f)
+
+        if token_type not in secrets.keys():
+            return True
+        elif token_type in secrets.keys() and len(secrets[token_type]) == 0:
+            return True
+
+        return False
+
+    @classmethod
+    def write(cls, token_data) -> None:
+        """Writes token data into JSON file."""
+        secrets_json = cls.read()
+        secrets_json.update(token_data)
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE_JSON)
+
+
+        with open(file_dir, mode="w", encoding="utf-8") as f:
+            json.dump(secrets_json, f, indent=0)
+
 def json_not_contains(token_type: str) -> bool:
     # Check if secrets.json contains authorization code or token
     try:
@@ -95,7 +138,7 @@ def extract_auth_code() -> str:
 
 def obtain_auth_code() -> str:
     """Gets an authorization code if it's missing from secrets.json file."""
-    if json_not_contains("authorization_code"):
+    if JSON_handler.json_not_contains("authorization_code"):
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
     
