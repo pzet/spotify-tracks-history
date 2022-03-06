@@ -45,9 +45,10 @@ class JSON_handler:
     
         return content
 
+
     @classmethod
     def json_not_contains(cls, token_type: str) -> bool:
-    # Check if secrets.json contains authorization code or token
+        """Check if secrets.json contains authorization code or token"""
         try:
             secrets = cls.read()
         except ValueError: 
@@ -55,6 +56,7 @@ class JSON_handler:
                 secrets = {}
                 json.dump(secrets, f)
 
+        # can I squeeze this logic into single line with OR?
         if token_type not in secrets.keys():
             return True
         elif token_type in secrets.keys() and len(secrets[token_type]) == 0:
@@ -62,8 +64,9 @@ class JSON_handler:
 
         return False
 
+
     @classmethod
-    def write(cls, token_data) -> None:
+    def write(cls, token_data: dict) -> None:
         """Writes token data into JSON file."""
         secrets_json = cls.read()
         secrets_json.update(token_data)
@@ -74,34 +77,11 @@ class JSON_handler:
         with open(file_dir, mode="w", encoding="utf-8") as f:
             json.dump(secrets_json, f, indent=0)
 
-def json_not_contains(token_type: str) -> bool:
-    # Check if secrets.json contains authorization code or token
-    try:
-        secrets = read_json()
-    except ValueError: 
-        with open(SECRETS_FILE, "w", encoding="utf-8") as f:
-            secrets = {}
-            json.dump(secrets, f)
-
-    if token_type not in secrets.keys():
-        return True
-    elif token_type in secrets.keys() and len(secrets[token_type]) == 0:
-        return True
-
-    return False
-
-def read_json(secrets_filename=SECRETS_FILE, encoding="utf-8") -> json:
-    """Reads the content of JSON file."""
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = os.path.join(cur_dir, secrets_filename)
-    with open(file_dir) as f:
-        content = json.load(f)
-    
-    return content
+   
 
 def is_token_expired() -> bool:
     """Check if the token is already expired."""
-    token_data = read_json()
+    token_data = JSON_handler.read()
     expiration_time = token_data["expires_at"]
     expiration_time_datetime = datetime.datetime.strptime(expiration_time, ("%m/%d/%Y, %H:%M:%S"))
     now = datetime.datetime.now()
@@ -109,20 +89,7 @@ def is_token_expired() -> bool:
     return now > expiration_time_datetime
 
 
-def auth_code_to_json(auth_code: str, secrets_filename=SECRETS_FILE) -> None:
-    """Write authorization code to the secrets.json file"""
-    auth_code_dict = {
-            "authorization_code": auth_code
-        }
-    
-    secrets = read_json()
-    secrets.update(auth_code_dict)
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = os.path.join(cur_dir, secrets_filename)
-
-    with open(file_dir, "w", encoding="utf-8") as f:
-        json.dump(secrets, f, indent=0)
-        
+      
 
 def extract_auth_code() -> str:
     """
@@ -131,7 +98,12 @@ def extract_auth_code() -> str:
     """
     auth_code = request.args["code"]
     _ = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
-    auth_code_to_json(auth_code)
+
+    auth_code_dict = {
+        "authorization_code": auth_code
+        }
+
+    JSON_handler.write(auth_code_dict)
 
     return auth_code
 
@@ -142,7 +114,7 @@ def obtain_auth_code() -> str:
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
     
-    secrets_dict = read_json()
+    secrets_dict = JSON_handler.read()
     
     return secrets_dict["authorization_code"]
 
@@ -161,14 +133,14 @@ def get_client_creds_b64() -> str:
 def get_token() -> str:
     """"Requests new token if one is missing from secrets.json file 
         or refreshes the token if it's expired."""
-    if json_not_contains("access_token"):
+    if JSON_handler.json_not_contains("access_token"):
         request_token()
         print("New token obtained.")
     if is_token_expired():
         refresh_token()
         print("Token has been refreshed.")
     
-    token_data = read_json()
+    token_data = JSON_handler.read()
     access_token = token_data["access_token"]
     
     return access_token
@@ -192,14 +164,14 @@ def request_token() -> str:
     token_expiration_time = datetime.datetime.now() + datetime.timedelta(seconds=token_data["expires_in"])
     token_expiration_time = token_expiration_time.strftime("%m/%d/%Y, %H:%M:%S")
     token_data["expires_at"] = token_expiration_time
-    token_data_to_json_file(token_data)
+    JSON_handler.write(token_data)
     
     return token_data["access_token"]
 
 
 def refresh_token(secrets_filename=SECRETS_FILE):
     """Refreshes token and updates it in the secrets.json file."""
-    token_data = read_json()
+    token_data = JSON_handler.read()
     refresh_token = token_data["refresh_token"]
     client_credentials = get_client_creds_b64()
     data = {
@@ -223,18 +195,6 @@ def refresh_token(secrets_filename=SECRETS_FILE):
 
     with open(file_dir, "w") as f:
         json.dump(token_data, f, indent=0)
-
-
-def token_data_to_json_file(token_data, secrets_filename=SECRETS_FILE):
-    """Writes token data into JSON file."""
-    secrets_json = read_json()
-    secrets_json.update(token_data)
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
-    file_dir = os.path.join(cur_dir, secrets_filename)
-
-
-    with open(file_dir, mode="w", encoding="utf-8") as f:
-        json.dump(secrets_json, f, indent=0)
 
 
 # Flask app
