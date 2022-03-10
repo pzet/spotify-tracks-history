@@ -31,13 +31,13 @@ app = Flask(__name__)
 
 class JSON_handler:
 
-    SECRETS_FILE_JSON = 'secrets.json'
+    SECRETS_FILE = 'secrets.json'
 
     @classmethod
     def read(cls) -> dict:
         """Reads the content of JSON file."""
         cur_dir = os.path.dirname(os.path.abspath(__file__))
-        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE_JSON)
+        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE)
         with open(file_dir) as f:
             content = json.load(f)
     
@@ -50,7 +50,9 @@ class JSON_handler:
         try:
             secrets = cls.read()
         except ValueError: 
-            with open(SECRETS_FILE, "w", encoding="utf-8") as f:
+            # change it to use write() method
+            # cls.write({})
+            with open(cls.SECRETS_FILE, "w", encoding="utf-8") as f:
                 secrets = {}
                 json.dump(secrets, f)
 
@@ -69,8 +71,7 @@ class JSON_handler:
         secrets_json = cls.read()
         secrets_json.update(token_data)
         cur_dir = os.path.dirname(os.path.abspath(__file__))
-        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE_JSON)
-
+        file_dir = os.path.join(cur_dir, cls.SECRETS_FILE)
 
         with open(file_dir, mode="w", encoding="utf-8") as f:
             json.dump(secrets_json, f, indent=0)
@@ -78,7 +79,11 @@ class JSON_handler:
    
 
 def is_token_expired() -> bool:
-    """Check if the token is already expired."""
+    """_summary_
+
+    Returns:
+        bool: True if the token is valid
+    """
     token_data = JSON_handler.read()
     expiration_time = token_data["expires_at"]
     expiration_time_datetime = datetime.datetime.strptime(expiration_time, ("%m/%d/%Y, %H:%M:%S"))
@@ -87,12 +92,12 @@ def is_token_expired() -> bool:
     return now > expiration_time_datetime
 
 
-      
-
 def extract_auth_code() -> str:
-    """
-    Reads authorization code from request arguments, writes the code to JSON file
+    """Reads authorization code from request arguments, writes the code to JSON file
     and shuts the server down (with GET request).
+
+    Returns:
+        str: returns authorization code extracted from the URL
     """
     auth_code = request.args["code"]
     _ = requests.get(f"{CLIENT_SIDE_URL}:{PORT}/shutdown")
@@ -107,7 +112,11 @@ def extract_auth_code() -> str:
 
 
 def obtain_auth_code() -> str:
-    """Gets an authorization code if it's missing from secrets.json file."""
+    """Gets an authorization code if it's missing from secrets.json file.
+
+    Returns:
+        str: authorization code
+    """
     if JSON_handler.json_not_contains("authorization_code"):
         webbrowser.open_new(f"{CLIENT_SIDE_URL}:{PORT}")
         app.run(debug=False, port=PORT)
